@@ -1577,15 +1577,15 @@ const MARCA = '<svg viewBox="0 0 64 24" aria-hidden="true">' +
    preenchidos aqui, a capa, o cabeçalho de folha e o bloco de assinaturas
    passam a sair com os dados do serviço que emite o laudo. */
 const EMISSOR = {
-  razao:'[Razão social do serviço de física médica]',
-  endereco:'[Endereço · cidade/UF · CEP]',
-  contato:'[Telefone · e-mail · site]'
+  razao:'Lumen Física Médica Ltda. · demonstração',
+  endereco:'Rua Conde do Pinhal, 2210 · São Carlos/SP · 13560-140',
+  contato:'(16) 3307-5200 · contato@exemplo.com.br'
 };
 
 const RESPONSAVEL = {
-  nome:'[Nome do responsável pelos ensaios]',
+  nome:'Mariana Teixeira, física médica',
   titulo:'Supervisor de proteção radiológica',
-  registro:'[Registro profissional · CNEN/SPR · CREA/CRF]'
+  registro:'Registro profissional fictício · demonstração'
 };
 
 /* Vistoria de radioproteção — o que se confere no consultório antes de medir.
@@ -1644,23 +1644,23 @@ const INSPECAO_EQUIP = VISTORIA.reduce((a, g) => a.concat(g.itens), []);
    de alguém. Marca e modelo de equipamento são de catálogo público e ficam
    como estão, porque é o que dá verossimilhança à demonstração. */
 const INSTITUICOES = [
-  {id:'hospex', nome:'Hospital Exemplo', cnpj:'00.000.000/0001-00',
-   endereco:'Rua Exemplo, 100 · Bairro Exemplo',
-   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
-   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
-   alvara:'Alvará sanitário 0000/000000'},
+  {id:'hospex', nome:'Hospital Santa Aurora', cnpj:'11.222.333/0001-81',
+   endereco:'Av. das Palmeiras, 1450 · Jardim América',
+   cidade:'Ribeirão Preto/SP', cep:'14020-160', telefone:'(16) 3512-4800',
+   rt:'Dra. Helena Duarte — CRM/SP 112.458',
+   alvara:'Alvará sanitário 3549/2025-118'},
 
-  {id:'clinex', nome:'Clínica Exemplo', cnpj:'00.000.000/0002-00',
-   endereco:'Avenida Exemplo, 200 · Bairro Exemplo',
-   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
-   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
-   alvara:'Alvará sanitário 0000/000000'},
+  {id:'clinex', nome:'Clínica Imagem Vale do Sol', cnpj:'11.444.777/0001-61',
+   endereco:'Rua Barão de Jaguara, 820 · Centro',
+   cidade:'Campinas/SP', cep:'13015-002', telefone:'(19) 3234-7710',
+   rt:'Dr. Ricardo Albuquerque — CRM/SP 98.731',
+   alvara:'Alvará sanitário 3509/2025-044'},
 
-  {id:'upaex', nome:'UPA Exemplo', cnpj:'00.000.000/0003-00',
-   endereco:'Praça Exemplo, 300 · Bairro Exemplo',
-   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
-   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
-   alvara:'Alvará sanitário 0000/000000'}
+  {id:'upaex', nome:'UPA 24h Jardim Primavera', cnpj:'22.333.444/0001-81',
+   endereco:'Rua Ipê Amarelo, 75 · Jardim Primavera',
+   cidade:'Sorocaba/SP', cep:'18052-300', telefone:'(15) 3228-9100',
+   rt:'Dra. Camila Nogueira — CRM/SP 134.902',
+   alvara:'Alvará sanitário 3552/2026-009'}
 ];
 
 /* Modelo e série do tubo saem juntos no laudo. O acervo antigo guardava os
@@ -1680,7 +1680,7 @@ const equipDe  = instId => EQUIPAMENTOS.filter(e => e.hosp === instId);
 const EQUIPAMENTOS = [
  {id:'ODI-01', hosp:'hospex', relatorio:'2026/0142', periodicidade:'Bienal',
   visita:'', validade:'',
-  unidade:'Unidade Exemplo I', setor:'Odontologia', sala:'Consultório 3 · periapical',
+  unidade:'Unidade Central', setor:'Odontologia', sala:'Consultório 3 · periapical',
   marca:'Dabi Atlante', modelo:'Spectro 70X Eletronic', ns:'SN 70X-3318', patrimonio:'052914',
   tuboModelo:'Toshiba D-041', tuboNs:'SN T-2277', anoFab:'2021', kvpMax:70, maMax:8,
   tecnologia:'Digital · sensor', tipo:'Parede', localizador:'Cilindro longo 30 cm',
@@ -1688,7 +1688,7 @@ const EQUIPAMENTOS = [
 
  {id:'ODI-02', hosp:'clinex', relatorio:'2026/0147', periodicidade:'Bienal',
   visita:'', validade:'',
-  unidade:'Unidade Exemplo II', setor:'Odontologia', sala:'Consultório 1 · periapical',
+  unidade:'Unidade Cambuí', setor:'Odontologia', sala:'Consultório 1 · periapical',
   marca:'Gnatus', modelo:'Timex 70E', ns:'SN TX-8840', patrimonio:'031277',
   tuboModelo:'Toshiba D-042B', tuboNs:'SN T-6104', anoFab:'2018', kvpMax:70, maMax:7,
   tecnologia:'Digital · placa', tipo:'Parede', localizador:'Cilindro longo 30 cm',
@@ -1696,7 +1696,7 @@ const EQUIPAMENTOS = [
 
  {id:'ODI-03', hosp:'upaex', relatorio:'2026/0153', periodicidade:'Bienal',
   visita:'', validade:'',
-  unidade:'Unidade Exemplo III', setor:'Odontologia', sala:'Consultório único · urgência',
+  unidade:'Pronto atendimento', setor:'Odontologia', sala:'Consultório único · urgência',
   marca:'Procion', modelo:'Rx Plus 60', ns:'SN PR-1192', patrimonio:'A definir',
   tuboModelo:'Kailong KL-60', tuboNs:'SN T-0455', anoFab:'2009', kvpMax:60, maMax:7,
   tecnologia:'Filme', tipo:'Parede', localizador:'Cone curto 20 cm',

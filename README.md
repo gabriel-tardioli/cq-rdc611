@@ -1,5 +1,78 @@
 # Controle de Qualidade RDC 611
 
+**Coletor de campo para serviços de física médica: do ensaio ao relatório, sem papel e sem depender de sinal.**
+
+Feito para o físico que faz o controle de qualidade em radiologia diagnóstica exigido pela
+**RDC nº 611/2022 da ANVISA** e pelas **Instruções Normativas nº 90 a 97/2021**. Abre no celular ou
+no tablet, funciona offline dentro da sala blindada e entrega, no fim da visita, a planilha com tudo
+o que foi medido.
+
+![Telas do coletor: modalidades, ensaio de tensão do tubo e vistoria de radioproteção](docs/img/vitrine.png)
+
+## O que resolve
+
+| Antes | Com o coletor |
+|---|---|
+| Folha de campo em papel, digitada de novo no escritório | A leitura entra uma vez, no teclado numérico, e já sai calculada |
+| Conferir a tolerância de cada ensaio na norma | O roteiro do Anexo I traz a tolerância e o nível de restrição de cada ensaio, e marca **conforme** ou **não conforme** na hora |
+| Sala blindada sem sinal de celular | App instalável (PWA): depois de instalado, funciona **sem rede**, e a coleta fica no aparelho |
+| Coeficiente de calibração aplicado à mão | O medidor e o certificado ficam cadastrados, e o coeficiente certo é escolhido pela tensão do ensaio |
+| Vistoria anotada à parte | A vistoria de radioproteção (sinalização, vestimentas, barreiras, dosimetria) entra no mesmo fluxo, com observações que vão para o relatório |
+
+## O que ele faz
+
+- **Clientes e parque de equipamentos.** Cadastro do serviço de saúde, do responsável técnico, do alvará e de cada
+  equipamento, com o conjunto emissor (tubo, ano, kVp e mA máximos, filtração).
+- **Roteiro de ensaios por modalidade.** Os ensaios do Anexo I de cada IN, filtráveis por periodicidade
+  (aceitação, anual, semestral...), com o andamento da visita sempre à vista.
+- **Medição sem erro de digitação.** Estações de medida (60, 70, 80 kVp...), três leituras por estação, resultado e
+  desvio calculados enquanto as leituras entram.
+- **Ferramentas do serviço.** Medidores e fantomas com certificado, validade e rastreabilidade. Os coeficientes por
+  qualidade de feixe são interpolados, nunca extrapolados.
+- **Exportação para .xlsx.** Uma visita, um arquivo, pela folha de compartilhamento do aparelho
+  (Arquivos, Drive, e-mail). Sem servidor, sem conta e sem mensalidade de nuvem.
+
+## Modalidades
+
+| IN | Modalidade | Coletor |
+|----|------------|---------|
+| 90 | Radiografia médica convencional | pronto — 33 ensaios |
+| 96 | Ultrassom diagnóstico | pronto — 13 testes |
+| 95 | Radiologia odontológica intraoral | pronto — 15 ensaios |
+| 94 | Radiologia odontológica extraoral | em preparação |
+| 91 | Fluoroscopia e radiologia intervencionista | em preparação |
+| 92 | Mamografia | em preparação |
+| 93 | Tomografia computadorizada | em preparação |
+| 97 | Ressonância magnética nuclear | em preparação |
+
+A versão deste repositório é de demonstração: os valores de referência dos instrumentos e a
+identificação do serviço emissor devem ser conferidos antes de qualquer uso em
+campo.
+
+
+## Telas
+
+| Clientes | Roteiro do equipamento |
+|---|---|
+| ![Lista de clientes](docs/img/clientes.png) | ![Roteiro de ensaios do equipamento](docs/img/roteiro.png) |
+
+| Início | Ensaio em coleta |
+|---|---|
+| ![Tela inicial com o cliente ativo](docs/img/inicio.png) | ![Ensaio de exatidão da tensão do tubo](docs/img/ensaio.png) |
+
+> Os clientes, equipamentos e responsáveis que aparecem no app e nas telas são **fictícios**, criados para a
+> demonstração. Os CNPJs são os de exemplo dos manuais de validação.
+
+## Quer usar no seu serviço?
+
+O coletor é licenciado para serviços de física médica, com o cadastro do seu serviço, dos seus medidores e
+dos seus clientes. Para conversar sobre licença ou sobre uma demonstração, abra uma
+[issue](../../issues) neste repositório.
+
+---
+
+# Por dentro
+
 Coletor de campo para os ensaios de controle de qualidade das Instruções
 Normativas nº 90 a 97/2021, da RDC nº 611/2022 da ANVISA.
 
@@ -103,23 +176,6 @@ Os cabeçalhos ficam em `app/_headers`, e não no `netlify.toml`, justamente par
 valerem também quando a pasta é arrastada sozinha: é lá que o service worker, o
 manifesto e os arquivos de `base/` são marcados como sem cache, para que uma
 versão nova chegue aos aparelhos já instalados.
-
-## Situação
-
-| IN | Modalidade | Coletor |
-|----|------------|---------|
-| 90 | Radiografia médica convencional | pronto — 33 ensaios |
-| 96 | Ultrassom diagnóstico | pronto — 13 testes |
-| 95 | Radiologia odontológica intraoral | pronto — 15 ensaios |
-| 94 | Radiologia odontológica extraoral | a fazer |
-| 91 | Fluoroscopia e radiologia intervencionista | a fazer |
-| 92 | Mamografia | a fazer |
-| 93 | Tomografia computadorizada | a fazer |
-| 97 | Ressonância magnética nuclear | a fazer |
-
-Demonstração técnica. Os valores de referência dos instrumentos e a
-identificação do serviço emissor devem ser conferidos antes de qualquer uso em
-campo.
 
 ## Ferramentas do serviço
 

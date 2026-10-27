@@ -11,7 +11,7 @@
    antigo indefinidamente.
    ========================================================================== */
 
-const VERSAO = 'cq-rdc611-v23';
+const VERSAO = 'cq-rdc611-v24';
 const RECURSOS = [
   './',
   './index.html',

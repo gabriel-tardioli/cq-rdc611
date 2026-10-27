@@ -1163,23 +1163,23 @@ const INSPECAO_TRANSD = ['Transdutor', 'Interferência'];
    de alguém. Marca e modelo de equipamento são de catálogo público e ficam
    como estão, porque é o que dá verossimilhança à demonstração. */
 const HOSPITAIS = [
-  {id:'hospex', nome:'Hospital Exemplo', cnpj:'00.000.000/0001-00',
-   endereco:'Rua Exemplo, 100 · Bairro Exemplo',
-   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
-   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
-   alvara:'Alvará sanitário 0000/000000'},
+  {id:'hospex', nome:'Hospital Santa Aurora', cnpj:'11.222.333/0001-81',
+   endereco:'Av. das Palmeiras, 1450 · Jardim América',
+   cidade:'Ribeirão Preto/SP', cep:'14020-160', telefone:'(16) 3512-4800',
+   rt:'Dra. Helena Duarte — CRM/SP 112.458',
+   alvara:'Alvará sanitário 3549/2025-118'},
 
-  {id:'clinex', nome:'Clínica Exemplo', cnpj:'00.000.000/0002-00',
-   endereco:'Avenida Exemplo, 200 · Bairro Exemplo',
-   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
-   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
-   alvara:'Alvará sanitário 0000/000000'},
+  {id:'clinex', nome:'Clínica Imagem Vale do Sol', cnpj:'11.444.777/0001-61',
+   endereco:'Rua Barão de Jaguara, 820 · Centro',
+   cidade:'Campinas/SP', cep:'13015-002', telefone:'(19) 3234-7710',
+   rt:'Dr. Ricardo Albuquerque — CRM/SP 98.731',
+   alvara:'Alvará sanitário 3509/2025-044'},
 
-  {id:'upaex', nome:'UPA Exemplo', cnpj:'00.000.000/0003-00',
-   endereco:'Praça Exemplo, 300 · Bairro Exemplo',
-   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
-   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
-   alvara:'Alvará sanitário 0000/000000'}
+  {id:'upaex', nome:'UPA 24h Jardim Primavera', cnpj:'22.333.444/0001-81',
+   endereco:'Rua Ipê Amarelo, 75 · Jardim Primavera',
+   cidade:'Sorocaba/SP', cep:'18052-300', telefone:'(15) 3228-9100',
+   rt:'Dra. Camila Nogueira — CRM/SP 134.902',
+   alvara:'Alvará sanitário 3552/2026-009'}
 ];
 
 const hospPorId = id => HOSPITAIS.find(h => h.id === id) ||
@@ -1196,17 +1196,17 @@ const PARQUE = [
   {
     id:'US-0614', relatorio:'2026/0471', periodicidade:'Anual',
     visita:'20/07/2026', validade:'19/07/2027',
-    hosp:'hospex', unidade:'Unidade Exemplo I',
-    marca:'Philips', modelo:'Affiniti 70G', ns:'US216F0721',
+    hosp:'hospex', unidade:'Unidade Central',
+    marca:'Philips', modelo:'Affiniti 70G', ns:'US221B4387',
     patrimonio:'—', setor:'Ultrassom', sala:'Diagnóstico por imagem',
     transdutores:[
-      {slot:'T1', tipo:'Linear',  modelo:'L12-3', ns:'21F07PHN', cod:'US-5836', fmax:12,
+      {slot:'T1', tipo:'Linear',  modelo:'L12-3', ns:'22B14KQM', cod:'US-5836', fmax:12,
        tec:{protocolo:'Vasc Carótida', potencia:'-0,5 dB', ad:'61', profmax:'10 cm',
             rejeicao:'0', graymap:'3', bandafocal:'0', densidade:'2'}},
-      {slot:'T2', tipo:'Linear',  modelo:'L12-5', ns:'21F0BXHZ', cod:'US-6324', fmax:12,
+      {slot:'T2', tipo:'Linear',  modelo:'L12-5', ns:'22B19TWR', cod:'US-6324', fmax:12,
        tec:{protocolo:'Vasc Carótida', potencia:'—', ad:'56', profmax:'8 cm',
             rejeicao:'0', graymap:'2', bandafocal:'0', densidade:'2'}},
-      {slot:'T3', tipo:'Convexo', modelo:'C5-1',  ns:'21F0DQPK', cod:'US-7131', fmax:4,
+      {slot:'T3', tipo:'Convexo', modelo:'C5-1',  ns:'22B2ANLX', cod:'US-7131', fmax:4,
        tec:{protocolo:'Abdome geral', potencia:'—', ad:'60', profmax:'16 cm',
             rejeicao:'0', graymap:'3', bandafocal:'2', densidade:'3'}}
     ],
@@ -1218,17 +1218,17 @@ const PARQUE = [
   {
     id:'US-0378', relatorio:'2026/0403', periodicidade:'Anual',
     visita:'01/07/2026', validade:'30/06/2027',
-    hosp:'clinex', unidade:'Unidade Exemplo II',
-    marca:'GE', modelo:'LOGIQ E9', ns:'LE9117690US8',
+    hosp:'clinex', unidade:'Unidade Cambuí',
+    marca:'GE', modelo:'LOGIQ E9', ns:'LE9204418US3',
     patrimonio:'051979', setor:'Ultrassom', sala:'Hemodinâmica',
     transdutores:[
-      {slot:'T1', tipo:'Linear',  modelo:'9L-D',     ns:'216589WP2', cod:'US-0356-L1', fmax:9,
+      {slot:'T1', tipo:'Linear',  modelo:'9L-D',     ns:'220417WP8', cod:'US-0378-L1', fmax:9,
        tec:{protocolo:'Carótida', potencia:'100', ad:'72', profmax:'20 cm',
             rejeicao:'0', graymap:'H', bandafocal:'0', densidade:'2'}},
-      {slot:'T2', tipo:'Linear',  modelo:'ML6-15-D', ns:'115480YP6', cod:'US-0378-L2', fmax:15,
+      {slot:'T2', tipo:'Linear',  modelo:'ML6-15-D', ns:'118833YP1', cod:'US-0378-L2', fmax:15,
        tec:{protocolo:'Carótida', potencia:'100', ad:'72', profmax:'12 cm',
             rejeicao:'0', graymap:'H', bandafocal:'2', densidade:'1'}},
-      {slot:'T3', tipo:'Convexo', modelo:'C1-5-D',   ns:'121040YP0', cod:'US-0356-C2', fmax:5,
+      {slot:'T3', tipo:'Convexo', modelo:'C1-5-D',   ns:'123590YP4', cod:'US-0378-C3', fmax:5,
        tec:{protocolo:'Abdome', potencia:'100', ad:'69', profmax:'33 cm',
             rejeicao:'0', graymap:'G', bandafocal:'2', densidade:'3'}}
     ],
@@ -1240,7 +1240,7 @@ const PARQUE = [
   {
     id:'US-0912', relatorio:'', periodicidade:'Anual',
     visita:'', validade:'',
-    hosp:'upaex', unidade:'Unidade Exemplo III',
+    hosp:'upaex', unidade:'Pronto atendimento',
     marca:'Mindray', modelo:'DC-40', ns:'DC40D9922',
     patrimonio:'062441', setor:'Ultrassom', sala:'Sala de procedimentos',
     semHistorico:true,
@@ -2900,9 +2900,9 @@ function telaTeste(){
    preencher aqui e a capa, o cabeçalho de folha e o bloco de assinaturas
    passam a sair com os dados do serviço que emite o laudo. */
 const EMISSOR = {
-  razao:'[Razão social do serviço de física médica]',
-  endereco:'[Endereço · cidade/UF · CEP]',
-  contato:'[Telefone · e-mail · site]'
+  razao:'Lumen Física Médica Ltda. · demonstração',
+  endereco:'Rua Conde do Pinhal, 2210 · São Carlos/SP · 13560-140',
+  contato:'(16) 3307-5200 · contato@exemplo.com.br'
 };
 
 const NORMA = {
