@@ -1,0 +1,18 @@
+# Publicação do Controle de Qualidade RDC 611.
+#
+# O app é estático: não há build, e o que se serve é a pasta `app/`.
+# Os cabeçalhos ficam em `app/_headers`, para valerem também quando a pasta
+# é publicada sozinha, sem este arquivo junto.
+
+[build]
+  publish = "app"
+
+  # Vazio de propósito, e não por esquecimento. Existe um `package.json` na
+  # raiz — só pelos atalhos `npm run dev` e companhia —, e sem esta linha o
+  # Netlify o encontra, conclui que é um projeto Node e procura um script de
+  # build. Não há nenhum, e a publicação falharia por causa de um arquivo de
+  # conveniência.
+  #
+  # Não há `npm install` a fazer: o projeto não tem dependência alguma, em
+  # tempo de execução nem de mesa. O que está no repositório é o que roda.
+  command = ""

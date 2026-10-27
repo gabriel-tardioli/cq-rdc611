@@ -1,0 +1,3995 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coletor CQ">
+<meta name="application-name" content="Coletor CQ">
+<title>Coletor de campo · CQ de ultrassom · IN nº 96/2021</title>
+<script src="base/semente.js"></script>
+<script src="base/arquivos.js"></script>
+<script src="base/xlsx.js"></script>
+<script src="base/cadastro.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icones/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icones/icone-192.png">
+<meta name="theme-color" content="#1B469A">
+<style>a.ab-icone{text-decoration:none}</style>
+<style>
+/* ==========================================================================
+   Coletor de campo para controle de qualidade em ultrassom diagnóstico
+   (IN nº 96/2021 · RDC 611/2022).
+
+   Arquivo único, sem dependência de rede: fontes do sistema, gráficos em
+   SVG, estado em memória. Mesmo sistema visual e mesma hierarquia de
+   navegação — instituição, equipamento, ensaio — do coletor de radiografia
+   convencional (IN nº 90/2021).
+   ========================================================================== */
+
+/* --- tokens: claro no :root, escuro nos dois guardas --------------------- */
+:root{
+  --bg:#F5F7F8; --surface:#FFFFFF; --surface-2:#FAFBFC; --hover:#EFF2F4;
+  --border:rgba(13,25,30,.09); --border-2:rgba(13,25,30,.16);
+  --text:#0F1618; --muted:#5F6E6A; --faint:#8B9793;
+  --accent:#2E63C8; --accent-soft:rgba(46,99,200,.10);
+  --ok:#2E9166; --warn:#B07714; --bad:#C2413F; --info:#2E63C8; --neutro:#647069;
+  --ok-soft:rgba(46,145,102,.10); --warn-soft:rgba(176,119,20,.10);
+  --bad-soft:rgba(194,65,63,.10); --info-soft:rgba(46,99,200,.10);
+  --neutro-soft:rgba(100,112,105,.10);
+  --grid:rgba(13,25,30,.07);
+  --sombra:0 1px 2px rgba(13,25,30,.06);
+  --sobre-accent:#FFFFFF;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  /* No Android nenhuma das fontes nomeadas existe e sobra o monospace do
+     sistema (Roboto Mono), que não tem ≤ ≥ ± − — daí os quadradinhos. As
+     famílias abaixo cobrem iOS, Android e desktop, e símbolo nenhum é
+     renderizado em mono: eles ficam na pilha sans, que tem todos. */
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,"Roboto Mono",
+         "Droid Sans Mono","Liberation Mono","Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0E10; --surface:#14181B; --surface-2:#1B2126; --hover:#232A30;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+    --text:#E9EEEC; --muted:#8C9793; --faint:#5E6A66;
+    --accent:#6C9CF5; --accent-soft:rgba(108,156,245,.16);
+    --ok:#43B581; --warn:#E3A33A; --bad:#E45B5B; --info:#6C9CF5; --neutro:#7C8A85;
+    --ok-soft:rgba(67,181,129,.15); --warn-soft:rgba(227,163,58,.15);
+    --bad-soft:rgba(228,91,91,.15); --info-soft:rgba(108,156,245,.15);
+    --neutro-soft:rgba(124,138,133,.15);
+    --grid:rgba(255,255,255,.07);
+    --sombra:0 1px 2px rgba(0,0,0,.3);
+    --sobre-accent:#08111F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0E10; --surface:#14181B; --surface-2:#1B2126; --hover:#232A30;
+  --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+  --text:#E9EEEC; --muted:#8C9793; --faint:#5E6A66;
+  --accent:#6C9CF5; --accent-soft:rgba(108,156,245,.16);
+  --ok:#43B581; --warn:#E3A33A; --bad:#E45B5B; --info:#6C9CF5; --neutro:#7C8A85;
+  --ok-soft:rgba(67,181,129,.15); --warn-soft:rgba(227,163,58,.15);
+  --bad-soft:rgba(228,91,91,.15); --info-soft:rgba(108,156,245,.15);
+  --neutro-soft:rgba(124,138,133,.15);
+  --grid:rgba(255,255,255,.07);
+  --sombra:0 1px 2px rgba(0,0,0,.3);
+  --sobre-accent:#08111F;
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit; color:inherit}
+
+/* ==========================================================================
+   Casca do aplicativo — desenhada primeiro para o celular.
+
+   O layout de navegador só entra quando há largura E mouse. Um aparelho de
+   toque reporta pointer:coarse, então nunca cai na versão de desktop, mesmo
+   que o quadro onde a página é embutida seja largo — que é exatamente o que
+   acontece dentro de um visualizador de artefato.
+   ========================================================================== */
+html,body{overflow-x:clip}
+.app{display:flex; flex-direction:column; min-height:100dvh; min-width:0}
+#vista{flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px; min-width:0}
+/* Num contêiner flex o filho não encolhe abaixo do conteúdo por padrão, e um
+   nome de equipamento comprido empurraria a página de lado. */
+#vista > *{min-width:0; max-width:100%}
+#vista > .acao-fixa{margin-top:auto; max-width:none}
+
+.appbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:4px;
+  padding:calc(env(safe-area-inset-top) + 7px) 8px 8px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+  background:color-mix(in srgb, var(--bg) 84%, transparent);
+  backdrop-filter:saturate(180%) blur(16px);
+  -webkit-backdrop-filter:saturate(180%) blur(16px);
+}
+.ab-icone{
+  width:42px; height:42px; flex:0 0 auto; border-radius:13px; background:none; border:none;
+  display:grid; place-items:center; cursor:pointer; transition:background .14s;
+}
+.ab-icone:active{background:var(--hover)}
+.ab-icone:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.ab-icone svg{width:21px; height:21px; stroke:var(--text); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.ab-icone.leve svg{stroke:var(--muted); width:19px; height:19px; stroke-width:1.8}
+
+.ab-tit{flex:1 1 auto; min-width:0; padding:0 4px}
+.ab-tit b{
+  display:block; font-size:16.5px; font-weight:600; letter-spacing:-.02em; line-height:1.25;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ab-tit span{
+  display:block; font-size:11.5px; color:var(--muted); line-height:1.4;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+.glifo{
+  width:34px; height:34px; border-radius:11px; background:var(--accent-soft);
+  display:grid; place-items:center; flex:0 0 auto; margin-left:6px;
+}
+.glifo svg{width:19px; height:19px; stroke:var(--accent); fill:none; stroke-width:1.8; stroke-linecap:round}
+
+.rede{
+  display:inline-flex; align-items:center; gap:6px; border-radius:999px; flex:0 0 auto;
+  padding:4px 10px; font-size:11px; font-weight:500;
+  background:var(--warn-soft); color:var(--warn);
+}
+.rede::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+
+/* Ação principal da tela, ancorada no rodapé como num aplicativo.
+   Sticky e não fixed: o quadro que embute a página pode ser redimensionado
+   à altura do conteúdo, e aí "fixed" ancoraria no fim do documento em vez
+   de na tela. Sticky acerta nos dois casos. */
+.acao-fixa{
+  position:sticky; bottom:0; z-index:29;
+  display:flex; flex-wrap:wrap; gap:8px; margin:20px -14px 0;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:var(--bg);
+  background:color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter:saturate(180%) blur(16px);
+  -webkit-backdrop-filter:saturate(180%) blur(16px);
+}
+.acao-fixa .bt{flex:1 1 0; padding:15px 14px; border-radius:15px}
+
+/* ---------- interruptor do histórico ---------- */
+.chave{
+  display:flex; align-items:center; gap:13px; background:var(--surface);
+  border:1px solid var(--border); border-radius:16px; padding:13px 16px; margin:14px 0 4px;
+}
+.chave .cnt{flex:1 1 auto; min-width:0}
+.chave b{display:block; font-size:13.5px; font-weight:600}
+.chave p{margin:2px 0 0; font-size:12px; color:var(--muted); line-height:1.5}
+.interruptor{
+  flex:0 0 auto; width:52px; height:30px; border-radius:999px; border:1px solid var(--border-2);
+  background:var(--surface-2); cursor:pointer; padding:0; position:relative; transition:background .18s, border-color .18s;
+}
+.interruptor::after{
+  content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+  background:var(--faint); transition:transform .18s, background .18s;
+}
+.interruptor[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent)}
+.interruptor[aria-pressed="true"]::after{transform:translateX(22px); background:var(--accent)}
+.interruptor:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ---------- elementos gerais ---------- */
+h1{font-size:21px; font-weight:600; letter-spacing:-.02em; margin:0 0 4px; text-wrap:balance}
+h2{font-size:15px; font-weight:600; margin:0 0 2px}
+.sub{color:var(--muted); font-size:12.5px}
+.rotulo{font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:22px 2px 9px}
+
+.card{background:var(--surface); border:1px solid var(--border); border-radius:16px}
+.pad{padding:16px 18px}
+
+.chip{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:500; white-space:nowrap}
+.chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:0 0 auto}
+.c-conf{color:var(--ok); background:var(--ok-soft)}
+.c-nconf{color:var(--warn); background:var(--warn-soft)}
+.c-restr{color:var(--bad); background:var(--bad-soft)}
+.c-elb{color:var(--info); background:var(--info-soft)}
+.c-na{color:var(--neutro); background:var(--neutro-soft)}
+.c-pend{color:var(--neutro); background:var(--neutro-soft)}
+
+/* ---------- marcações manuais do teste ---------- */
+.marcas{display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 0}
+.marca-bt{
+  border:1px solid var(--border); background:var(--surface); border-radius:999px;
+  padding:9px 16px; font-size:12.5px; color:var(--muted); cursor:pointer;
+  transition:background .16s, border-color .16s, color .16s;
+}
+.marca-bt:hover{background:var(--hover); color:var(--text)}
+.marca-bt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.marca-bt[aria-pressed="true"][data-s="elb"]{
+  background:var(--info-soft); border-color:var(--info); color:var(--info); font-weight:600}
+.marca-bt[aria-pressed="true"][data-s="na"]{
+  background:var(--neutro-soft); border-color:var(--neutro); color:var(--neutro); font-weight:600}
+
+.marca-ativa{
+  border:1px solid var(--border); border-left-width:3px; border-radius:13px;
+  padding:14px 16px; margin:12px 0 4px; background:var(--surface);
+}
+.marca-ativa.m-elb{border-left-color:var(--info)}
+.marca-ativa.m-na{border-left-color:var(--neutro)}
+.marca-ativa b{font-size:13.5px; display:block; margin-bottom:4px}
+.marca-ativa p{margin:0 0 12px; font-size:12px; color:var(--muted); line-height:1.6; max-width:66ch}
+
+.nota-marca{font-size:11px; color:var(--info); margin:6px 0 0; font-style:italic}
+
+.bt{
+  border-radius:14px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--muted); font-size:14.5px; font-weight:500; cursor:pointer; padding:14px 18px;
+  transition:transform .08s, background .14s;
+}
+.bt:active{transform:scale(.98)}
+.bt:hover{background:var(--hover)}
+.bt.principal{background:var(--accent); border-color:transparent; color:var(--sobre-accent); font-weight:600}
+.bt.principal:hover{filter:brightness(1.08)}
+.bt.mini{padding:8px 13px; font-size:12.5px; border-radius:11px}
+.bt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.bt:disabled{opacity:.4; cursor:default}
+
+/* ---------- parque de equipamentos ---------- */
+.busca{
+  display:flex; align-items:center; gap:10px; background:var(--surface);
+  border:1px solid var(--border); border-radius:14px; padding:0 14px; margin-bottom:12px;
+}
+.busca svg{width:16px; height:16px; stroke:var(--faint); fill:none; stroke-width:1.8; flex:0 0 auto}
+.busca input{flex:1 1 auto; background:none; border:none; padding:13px 0; font-size:14.5px; min-width:0}
+.busca input:focus{outline:none}
+.busca input::placeholder{color:var(--faint)}
+
+/* Listas no estilo de aplicativo: um cartão só, linhas separadas por
+   filete, seta de avanço e realce ao toque em vez de ao passar o mouse. */
+.lista{
+  display:block; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; overflow:hidden;
+}
+.equip{
+  width:100%; text-align:left; background:none; border:none; border-radius:0;
+  border-bottom:1px solid var(--border); padding:14px 40px 14px 16px;
+  cursor:pointer; display:block; position:relative; transition:background .12s;
+}
+.equip::after{
+  content:""; position:absolute; right:17px; top:50%; width:8px; height:8px;
+  border-right:2px solid var(--faint); border-top:2px solid var(--faint);
+  transform:translateY(-50%) rotate(45deg);
+}
+.equip:active{background:var(--hover)}
+.equip:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.equip .l1{display:flex; align-items:center; gap:8px; margin-bottom:3px; flex-wrap:wrap}
+.equip .cod{font-weight:600; font-size:15.5px; letter-spacing:-.01em}
+.equip .cli{font-size:12.5px; color:var(--muted); line-height:1.45}
+.equip .l3{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
+.progresso{flex:1 1 90px; height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden; min-width:60px}
+.progresso i{display:block; height:100%; background:var(--accent); border-radius:3px; transition:width .3s}
+.equip .pct{font-size:11.5px; color:var(--faint); flex:0 0 auto}
+
+/* Linha da lista com ação de remover ao lado: o cartão continua sendo o
+   botão de avanço, e o × é um botão irmão — botão dentro de botão não
+   existe em HTML. */
+.equip-linha{display:flex; align-items:stretch; border-bottom:1px solid var(--border)}
+.equip-linha > .equip{flex:1 1 auto; min-width:0; border-bottom:none; padding-right:14px}
+.equip-linha > .equip::after{display:none}
+.apagar-t{
+  flex:0 0 auto; width:50px; background:none; border:none; border-left:1px solid var(--border);
+  color:var(--faint); font-size:19px; line-height:1; cursor:pointer;
+  display:grid; place-items:center; transition:background .12s, color .12s;
+}
+.apagar-t:hover{color:var(--bad); background:var(--hover)}
+.apagar-t:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+
+.novo{
+  width:100%; background:none; border:none; border-top:1px solid var(--border); border-radius:0;
+  padding:14px 16px; cursor:pointer; display:flex; align-items:center; gap:12px; text-align:left;
+  color:var(--muted); transition:background .12s;
+}
+.lista .novo:first-child{border-top:none}
+.novo:active{background:var(--hover)}
+.novo:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.novo .mais{
+  width:34px; height:34px; border-radius:11px; background:var(--accent-soft); color:var(--accent);
+  display:grid; place-items:center; font-size:21px; font-weight:400; line-height:1; flex:0 0 auto;
+}
+.novo b{display:block; font-size:14.5px; font-weight:600; color:var(--text)}
+.novo span{font-size:12px; line-height:1.4}
+
+.vazio-msg{color:var(--faint); font-size:13.5px; padding:22px 16px; text-align:center}
+
+/* ---------- formulário de cadastro ---------- */
+.form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(186px,1fr)); gap:12px}
+.campo-form{display:flex; flex-direction:column; gap:5px; min-width:0}
+.campo-form label{font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint)}
+.campo-form input, .campo-form select{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:11px;
+  padding:10px 13px; font-size:14px; width:100%;
+}
+.campo-form input:focus, .campo-form select:focus{outline:none; border-color:var(--accent); background:var(--surface)}
+.campo-form input:invalid{border-color:var(--bad)}
+.campo-form .dica{font-size:11px; color:var(--faint)}
+
+/* Campo de texto de uma linha: a justificativa de uma marcação, o nome de uma
+   estação de medida. Mesmo desenho dos campos de cadastro. */
+input.txt, select.txt{
+  width:100%; min-width:0; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:11px; padding:10px 13px;
+}
+input.txt:focus, select.txt:focus{outline:none; border-color:var(--accent); background:var(--surface)}
+input.txt::placeholder{color:var(--faint)}
+
+.bloco-transd{
+  border:1px solid var(--border); border-radius:14px; padding:13px 15px 15px;
+  background:var(--surface-2); margin-bottom:10px;
+}
+.bloco-transd .cabeca{display:flex; align-items:center; gap:10px; margin-bottom:11px}
+.bloco-transd .slot{
+  font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent);
+  background:var(--accent-soft); border-radius:8px; padding:3px 9px;
+}
+.bloco-transd .cabeca .nome{font-size:12.5px; color:var(--muted); flex:1 1 auto; min-width:0}
+.tirar{
+  width:32px; height:32px; border-radius:9px; border:1px solid var(--border); background:var(--surface);
+  color:var(--faint); cursor:pointer; display:grid; place-items:center; font-size:17px; line-height:1; flex:0 0 auto;
+}
+.tirar:hover:not(:disabled){color:var(--bad); border-color:var(--bad)}
+.tirar:disabled{opacity:.35; cursor:default}
+
+/* ---------- técnica fixa ---------- */
+.tecnica{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:11px 20px}
+.tecnica div span{display:block; font-size:10px; color:var(--faint); letter-spacing:.05em; text-transform:uppercase}
+.tecnica div b{font-size:13.5px; font-weight:500}
+
+.resumo{display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:9px; margin-bottom:6px}
+.res-item{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px}
+.res-item .n{font-size:22px; font-weight:600; letter-spacing:-.02em; line-height:1.15}
+.res-item .r{font-size:11px; color:var(--muted); margin-top:1px}
+
+.grupo-tit{display:flex; align-items:baseline; gap:9px; margin:20px 2px 8px}
+.grupo-tit h2{font-size:13px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--faint)}
+.grupo-tit span{font-size:11.5px; color:var(--faint)}
+
+.teste-lista{
+  display:block; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; overflow:hidden;
+}
+.teste{
+  width:100%; text-align:left; background:none; border:none; border-radius:0;
+  border-bottom:1px solid var(--border); padding:13px 38px 13px 16px;
+  cursor:pointer; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  position:relative; transition:background .12s;
+}
+.teste:last-child{border-bottom:none}
+.teste::after{
+  content:""; position:absolute; right:16px; top:50%; width:7px; height:7px;
+  border-right:2px solid var(--faint); border-top:2px solid var(--faint);
+  transform:translateY(-50%) rotate(45deg);
+}
+.teste:active{background:var(--hover)}
+.teste:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.teste .corpo{flex:1 1 55%; min-width:0}
+.teste .nome{font-size:14.5px; font-weight:500; line-height:1.35}
+.teste .meta{font-size:11.5px; color:var(--faint); margin-top:2px}
+/* Sem a família mono: este bloco carrega ≤ ± % junto com os números, e a
+   pilha sans tem todos os glifos em qualquer sistema. */
+/* Duas alturas: situação e nome em cima, valor e tolerância embaixo. Sem a
+   família mono, porque este bloco carrega ≤ ± % junto com os números e a
+   pilha sans tem todos os glifos em qualquer sistema. */
+.teste .valor{
+  font-size:13.5px; font-weight:500; flex:1 1 100%; font-variant-numeric:tabular-nums;
+  padding-top:8px; margin-top:2px; border-top:1px solid var(--border); line-height:1.45;
+}
+.teste .valor small{color:var(--faint); font-weight:400; font-size:11.5px; margin-left:8px}
+
+/* ---------- coleta ---------- */
+.aquis{display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 16px}
+.aq{border:1px solid var(--border); background:var(--surface); border-radius:12px; padding:8px 13px; min-width:92px}
+.aq span{display:block; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
+.aq input{
+  background:transparent; border:none; padding:0; width:100%; font-size:14px; font-weight:600;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+}
+.aq input:focus{outline:none; color:var(--accent)}
+.aq input::placeholder{color:var(--faint); font-weight:400}
+
+.campos-num{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-bottom:6px}
+.campo-num{background:var(--surface); border:1px solid var(--border); border-radius:15px; padding:13px 16px}
+.campo-num label{display:block; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); margin-bottom:4px}
+.campo-num .linha{display:flex; align-items:baseline; gap:8px}
+.campo-num input{
+  background:transparent; border:none; padding:0; flex:1 1 auto; min-width:0;
+  font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:30px; font-weight:600; letter-spacing:-.03em;
+}
+.campo-num input:focus{outline:none; color:var(--accent)}
+.campo-num input::placeholder{color:var(--faint); font-weight:500}
+.campo-num .un{font-size:14px; color:var(--muted); font-weight:500; flex:0 0 auto}
+.campo-num.ctx{background:var(--surface-2)}
+.campo-num.ctx input{font-size:20px}
+
+.opcoes{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px; margin-bottom:14px}
+.opcao{
+  border:1px solid var(--border); background:var(--surface-2); border-radius:15px; padding:16px 14px;
+  cursor:pointer; text-align:left; font-size:14px; font-weight:500; color:var(--muted); transition:all .16s;
+}
+.opcao:hover{background:var(--hover)}
+.opcao[aria-pressed="true"][data-s="conf"]{background:var(--ok-soft); border-color:var(--ok); color:var(--ok); font-weight:600}
+.opcao[aria-pressed="true"][data-s="nconf"]{background:var(--warn-soft); border-color:var(--warn); color:var(--warn); font-weight:600}
+.opcao small{display:block; font-size:11px; font-weight:400; color:var(--faint); margin-top:3px; line-height:1.4}
+
+.sn{display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden}
+.sn button{background:var(--surface-2); border:none; padding:5px 13px; font-size:12px; cursor:pointer; color:var(--muted)}
+.sn button:hover{background:var(--hover)}
+.sn button[aria-pressed="true"]{background:var(--accent-soft); color:var(--accent); font-weight:600}
+
+/* --- vistoria: um item por linha, com o julgamento à direita ------------
+   Em campo se percorre a lista olhando o equipamento, não a tela. Por isso o
+   nome do item vem antes e ocupa a linha inteira quando é longo, e o par de
+   botões fica sempre no mesmo lugar. */
+.vist-lista{display:flex; flex-direction:column; gap:8px}
+.vist-item{
+  background:var(--surface); border:1px solid var(--border); border-radius:15px;
+  padding:13px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+}
+.vist-item.nc{border-color:var(--warn); background:var(--warn-soft)}
+.vist-item .nome{flex:1 1 190px; font-size:14px; line-height:1.4}
+.vist-item .sn{flex:0 0 auto}
+.vist-item textarea.obs{flex:1 1 100%; min-height:52px; margin-top:2px}
+
+textarea.obs{
+  width:100%; background:var(--surface); border:1px solid var(--border); border-radius:13px;
+  padding:12px 14px; font-size:13.5px; resize:vertical; min-height:66px;
+}
+textarea.obs:focus{outline:none; border-color:var(--accent)}
+table input.cel{
+  width:100%; max-width:96px; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:9px; padding:5px 9px; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:13.5px; text-align:right;
+}
+table input.cel:focus{outline:none; border-color:var(--accent)}
+
+/* ---------- painel de linha de base ---------- */
+.base-painel{
+  border:1px solid var(--border); border-radius:16px; padding:15px 17px; margin:16px 0 4px;
+  background:var(--surface); display:grid; gap:14px; grid-template-columns:minmax(0,1fr) minmax(0,240px);
+  align-items:center;
+}
+.base-painel.sem{grid-template-columns:1fr; border-style:dashed}
+.base-painel h3{font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:0 0 9px}
+.base-nums{display:flex; gap:22px; flex-wrap:wrap}
+.base-nums div span{display:block; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
+.base-nums div b{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:19px; font-weight:600; letter-spacing:-.02em}
+.base-nota{font-size:12px; color:var(--muted); margin:9px 0 0; line-height:1.55; max-width:60ch}
+.spark{width:100%; height:auto; display:block; overflow:visible}
+.spark-leg{display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-top:3px; font-family:var(--mono)}
+
+.rodape-acoes{display:flex; gap:8px; flex-wrap:wrap; margin-top:18px}
+.rodape-acoes .bt{flex:1 1 170px}
+
+/* ---------- relatório ---------- */
+.laudo{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:32px 36px; margin-top:4px}
+.laudo h1{font-size:19px; margin:0 0 3px}
+.laudo .norma{font-size:12.5px; color:var(--muted); margin-bottom:24px}
+/* A seção do transdutor tem treze testes e ocupa várias folhas: quem não pode
+   partir no meio é o bloco de resultado, não a seção. */
+.laudo section{margin-bottom:26px}
+/* Título de seção na caixa em que se escreve — "Cadastro", "Resultados:" —
+   e não como etiqueta em caixa alta. */
+.laudo h3{
+  font-size:14.5px; font-weight:700; letter-spacing:-.01em; color:var(--text);
+  margin:0 0 11px; padding-bottom:7px; border-bottom:1px solid var(--border-2);
+}
+.laudo h4{font-size:13.5px; font-weight:600; margin:20px 0 7px}
+.laudo h4 .num{color:var(--faint); font-family:var(--mono); font-weight:500; margin-right:7px}
+
+/* Identificação do transdutor: é a chave de leitura dos resultados — quem está
+   com o relatório na mão precisa achar de longe onde um transdutor termina e o
+   outro começa. Por isso sai maior e em negrito, e não como etiqueta de seção. */
+.laudo h3.sec-tit{
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:0 9px;
+  font-size:15px; font-weight:600; letter-spacing:-.01em; text-transform:none;
+  color:var(--muted); margin:0 0 14px; padding-bottom:9px;
+  border-bottom:2px solid var(--border-2);
+}
+.laudo h3.sec-tit b{font-size:18px; font-weight:700; color:var(--text)}
+.laudo h3.sec-tit .slot{
+  font-size:11.5px; font-weight:600; color:var(--accent); background:var(--accent-soft);
+  border-radius:7px; padding:2px 8px; letter-spacing:0;
+}
+.dl{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:11px 22px}
+.dl div span{display:block; font-size:10.5px; color:var(--faint); letter-spacing:.04em; text-transform:uppercase}
+.dl div b{font-size:13px; font-weight:500}
+
+table{border-collapse:collapse; width:100%; font-size:12.5px}
+th,td{padding:8px 10px; text-align:left; vertical-align:middle}
+th{font-size:10px; font-weight:600; color:var(--faint); letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid var(--border-2)}
+td{border-bottom:1px solid var(--border)}
+td.num,th.num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.tab-scroll{overflow-x:auto; margin:0 -4px}
+/* No laudo o cabeçalho da tabela sai na caixa corrente — "Borda
+   Nítida", não "BORDA NÍTIDA". A caixa alta fica para as telas de coleta. */
+.laudo th{text-transform:none; font-size:11px; letter-spacing:0; color:var(--muted)}
+/* Cabeçalho longo quebra em duas linhas, como no relatório impresso. Sem isso a
+   tabela não cabe na folha e empurra a última coluna para fora. */
+.laudo th.num{white-space:normal}
+.aq-linha{font-family:var(--mono); font-size:11.5px; color:var(--muted); margin:0 0 7px}
+
+.parecer{border-left:3px solid var(--accent); padding:12px 0 12px 16px; margin-top:6px}
+.parecer b{display:block; font-size:14px; margin-bottom:4px}
+.parecer p{margin:0; font-size:13px; color:var(--muted); line-height:1.6}
+.parecer.conf{border-color:var(--ok)}
+.parecer.nconf{border-color:var(--warn)}
+
+.nc{display:flex; gap:12px; align-items:flex-start; padding:11px 0; border-bottom:1px solid var(--border)}
+.nc:last-child{border-bottom:none}
+.nc .cnt b{font-size:13px; font-weight:500; display:block}
+.nc .cnt p{margin:3px 0 0; font-size:12px; color:var(--muted); line-height:1.5}
+
+.assinaturas{display:grid; grid-template-columns:1fr 1fr; gap:34px; margin-top:36px}
+.assin{border-top:1px solid var(--border-2); padding-top:8px; font-size:11.5px; color:var(--muted)}
+.assin b{display:block; font-size:13px; color:var(--text); font-weight:500}
+
+.aviso-demo{
+  display:inline-flex; align-items:center; gap:7px; font-size:11.5px; color:var(--warn);
+  background:var(--warn-soft); border-radius:999px; padding:4px 12px; margin-bottom:14px;
+}
+.aviso-demo::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+
+/* ---------- capa e aparato normativo do relatório ---------- */
+.capa{text-align:center; padding:26px 20px 30px; border-bottom:1px solid var(--border); margin-bottom:26px}
+.capa .logo{height:44px; margin:0 auto 28px; display:grid; place-items:center}
+.capa .logo svg{height:34px; width:auto; stroke:var(--accent); fill:none; stroke-width:1.7;
+                stroke-linecap:round; stroke-linejoin:round}
+.capa-num{font-family:var(--mono); font-size:13px; color:var(--muted)}
+.capa-cat{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-top:4px; font-weight:600}
+.capa h1{font-size:23px; margin:20px 0 0; letter-spacing:-.02em}
+.capa-eq{font-size:15.5px; font-weight:600; margin-top:20px; line-height:1.5}
+.capa-eq span{display:block; font-family:var(--mono); font-size:12px; font-weight:400; color:var(--muted)}
+.capa-cli{font-size:14px; color:var(--muted); margin-top:14px}
+.capa-ano{font-size:26px; font-weight:600; color:var(--faint); margin:20px 0 26px; letter-spacing:.04em}
+.capa-rod{font-size:10.5px; color:var(--muted); line-height:1.75; border-top:1px solid var(--border); padding-top:16px; max-width:56ch; margin:0 auto}
+.capa-rod b{color:var(--text); font-weight:600}
+
+.cabeca-doc{display:flex; align-items:center; gap:14px; padding-bottom:12px; border-bottom:1px solid var(--border); margin-bottom:20px}
+.cabeca-doc .marca{flex:0 0 auto; display:grid; place-items:center}
+.cabeca-doc .marca svg{height:17px; width:auto; stroke:var(--accent); fill:none; stroke-width:1.9;
+                       stroke-linecap:round; stroke-linejoin:round}
+.cabeca-doc .l{flex:1 1 auto; min-width:0; font-size:10.5px; color:var(--muted); line-height:1.5}
+.cabeca-doc .l b{color:var(--text); font-size:12px; display:block; font-weight:600}
+
+/* Centralizada na coluna de texto, como no relatório impresso. */
+.tol-box{border:1px solid var(--border-2); border-radius:9px; overflow:hidden; margin:11px auto 2px; max-width:60ch}
+.tol-box .cab{
+  background:var(--surface-2); padding:5px 12px; font-size:9.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; text-align:center;
+  border-bottom:1px solid var(--border-2); color:var(--text);
+}
+.tol-box .val{padding:9px 14px; font-size:12px; text-align:center; line-height:1.6; color:var(--muted)}
+
+.teste-desc{margin:18px 0 0; break-inside:avoid}
+.teste-desc h5{font-size:13.5px; font-weight:600; margin:0 0 5px; display:flex; gap:8px}
+.teste-desc h5::before{content:"•"; color:var(--accent)}
+.teste-desc p{margin:0; font-size:12.5px; color:var(--muted); line-height:1.7; text-align:justify}
+.teste-desc p + p{margin-top:9px}
+
+.laudo ul{margin:0; padding-left:20px; font-size:12.5px; color:var(--muted); line-height:1.7}
+.laudo ul li{margin-bottom:4px}
+.defin{font-size:12.5px; color:var(--muted); line-height:1.7}
+.defin b{color:var(--text)}
+.defin p{margin:0 0 11px; text-align:justify}
+
+.nota-icp{
+  font-size:9.5px; color:var(--faint); line-height:1.65; margin-top:26px;
+  padding-top:12px; border-top:1px solid var(--border); text-align:justify;
+}
+
+.comparativo{width:100%; font-size:13px}
+.comparativo th:first-child{width:30%}
+.comparativo td{vertical-align:top; line-height:1.5}
+.prosa{max-width:68ch; font-size:13.5px; color:var(--muted); line-height:1.65}
+.prosa strong{color:var(--text); font-weight:600}
+.prosa p{margin:0 0 12px}
+
+/* No laudo o texto ocupa a mesma largura das tabelas e é justificado, como no
+   relatório impresso: medida curta ao lado de tabela larga faz a folha parecer
+   torta. Fora do laudo a coluna estreita continua valendo — lá é leitura de
+   tela, não documento. */
+.laudo .prosa{max-width:none; text-align:justify}
+
+@keyframes sobe{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+.anima{animation:sobe .32s cubic-bezier(.22,.61,.36,1) backwards}
+@media (prefers-reduced-motion:reduce){.anima{animation:none} *{transition:none !important}}
+
+/* ==========================================================================
+   Ajustes finos do aparelho de toque
+   Tudo acima já é o desenho de celular. Aqui ficam só as correções que
+   dependem do meio: o iOS amplia a página sozinho ao focar um campo com
+   fonte menor que 16px, e tabela de dados precisa rolar em vez de espremer.
+   ========================================================================== */
+input, select, textarea,
+.busca input, .campo-form input, .campo-form select,
+table input.cel, .aq input, textarea.obs, input.txt{font-size:16px}
+
+.tab-scroll{-webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px}
+.tab-scroll table{min-width:440px}
+/* No laudo a tabela alinha com o texto: sem sangria, senão o filete da tabela
+   sai mais largo que o resto da folha. */
+.laudo .tab-scroll{margin:0; padding:0}
+
+/* Corpo de texto um ponto maior no dedo: o que se lê de pé numa sala de
+   exame não é o que se lê sentado na frente de um monitor. */
+@media (hover:none) and (pointer:coarse){
+  body{font-size:16px}
+  .sub{font-size:13px}
+  .chip{font-size:12px; padding:4px 11px}
+  .rotulo{font-size:11.5px}
+  .equip .cod{font-size:16px}
+  .equip .cli{font-size:13px}
+  .equip .pct{font-size:12px}
+  .teste .nome{font-size:15px}
+  .teste .meta{font-size:12px}
+  .teste .valor{font-size:14px}
+  .teste .valor small{font-size:12px}
+  .res-item .n{font-size:23px}
+  .res-item .r{font-size:11.5px}
+  .base-nota, .chave p{font-size:12.5px}
+  .novo b{font-size:15px}
+  .novo span{font-size:12.5px}
+  .prosa{font-size:14px}
+  .laudo{font-size:14px}
+  .laudo .dl div b{font-size:13.5px}
+  .teste-desc p, .defin, .laudo ul{font-size:13px}
+  th,td{font-size:13px}
+  .tol-box .val{font-size:12.5px}
+}
+
+/* Telas muito estreitas */
+@media (max-width:390px){
+  #vista{padding:0 11px}
+  .tab-scroll{margin:0 -11px; padding:0 11px}
+  .laudo{padding:16px 12px}
+  .aq{flex:1 1 100%}
+  .base-nums{gap:12px}
+  .base-nums div b{font-size:17px}
+  .ab-tit b{font-size:15.5px}
+}
+
+/* ==========================================================================
+   Navegador de mesa
+   Só entra com largura E mouse. Um celular reporta pointer:coarse e
+   hover:none, então continua no desenho de aplicativo mesmo que o quadro
+   onde a página está embutida seja largo.
+   ========================================================================== */
+@media (min-width:820px) and (hover:hover) and (pointer:fine){
+  .app{max-width:980px; margin:0 auto; padding:0 0 56px; min-height:0}
+  #vista{padding:0 16px}
+
+  .appbar{padding:12px 10px 10px; gap:6px}
+  .ab-tit b{font-size:15px}
+
+  /* Sem barra ancorada no rodapé: as ações voltam para o fim do conteúdo. */
+  .acao-fixa{
+    position:static; padding:0; margin:22px 0 0; border-top:none;
+    background:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  .acao-fixa .bt{flex:1 1 170px}
+
+  input, select, textarea,
+  .busca input, .campo-form input, .campo-form select,
+  .aq input, textarea.obs, input.txt{font-size:14px}
+  table input.cel{font-size:13.5px; padding:5px 9px}
+  .campo-form input, .campo-form select{padding:10px 13px}
+  .sn button{padding:5px 13px; font-size:12px}
+
+  /* Cartões soltos, realce ao passar o mouse, sem seta de avanço. */
+  .lista{background:none; border:none; border-radius:0; display:flex; flex-direction:column; gap:10px}
+  .equip{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:15px 17px;
+  }
+  .equip::after{display:none}
+  .equip:hover{background:var(--hover); border-color:var(--border-2)}
+  .equip .pct{min-width:96px; text-align:right}
+
+  /* Cartão solto e o × como controle separado ao lado. */
+  .equip-linha{border-bottom:none; gap:8px}
+  .equip-linha > .equip{padding-right:17px}
+  .apagar-t{
+    width:52px; border:1px solid var(--border); border-radius:16px; background:var(--surface);
+  }
+  .apagar-t:hover{border-color:var(--bad)}
+
+  .novo{
+    background:var(--surface-2); border:1px dashed var(--border-2); border-radius:16px;
+    padding:16px 17px;
+  }
+  .novo:hover{background:var(--hover); border-color:var(--accent); color:var(--text)}
+
+  .teste-lista{background:none; border:none; border-radius:0; display:flex; flex-direction:column; gap:6px}
+  .teste{
+    background:var(--surface); border:1px solid var(--border); border-radius:13px;
+    padding:12px 15px; flex-wrap:nowrap;
+  }
+  .teste::after{display:none}
+  .teste:hover{background:var(--hover); border-color:var(--border-2)}
+  .teste .corpo{flex:1 1 auto}
+  .teste .valor{
+    flex:0 1 auto; max-width:46%; text-align:right; white-space:nowrap;
+    padding-top:0; margin-top:0; border-top:none; overflow:hidden; text-overflow:ellipsis;
+  }
+  .teste .valor small{display:block; margin-left:0; font-size:10.5px}
+
+  .tab-scroll{margin:0 -4px; padding:0}
+  .tab-scroll table{min-width:0}
+  .laudo{padding:32px 36px}
+  .laudo .tab-scroll{margin:0; padding:0}
+
+  .base-painel{grid-template-columns:minmax(0,1fr) minmax(0,240px)}
+  .assinaturas{grid-template-columns:1fr 1fr}
+  .capa{padding:26px 20px 30px}
+  .capa .logo{height:44px; margin-bottom:28px}
+  .capa h1{font-size:23px}
+  .capa-ano{font-size:26px}
+  .marca-bt{flex:0 1 auto}
+  .campos-num{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .opcoes{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+  .teste-desc p, .defin p{text-align:justify}
+}
+
+/* Impressão: o relatório vai para papel, então a paleta clara é forçada
+   independentemente do tema em que a tela estava. */
+@media print{
+  @page{size:A4; margin:14mm 13mm}
+  /* O guarda do tema escuro é `:root:not([data-theme="light"])`, mais
+     específico que `:root`: sem repeti-lo aqui, um aparelho com o sistema em
+     modo escuro imprimiria o laudo com fundo escuro. */
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"]{
+    --bg:#fff; --surface:#fff; --surface-2:#fff; --hover:#fff;
+    --border:#d8dedd; --border-2:#a8b2b0;
+    --text:#111; --muted:#4a5350; --faint:#6d7674;
+    --accent:#1e4fa8; --ok:#1c6b45; --warn:#8a5a06; --bad:#9c2b2a; --info:#1e4fa8; --neutro:#4a5350;
+    --ok-soft:#eaf5ef; --warn-soft:#fbf3e3; --bad-soft:#fbecec; --info-soft:#eaf0fb; --neutro-soft:#f0f2f2;
+    --accent-soft:#eaf0fb;
+    --sombra:none;
+  }
+  body{background:#fff; color:#111; font-size:10.5pt}
+  .appbar,.acao-fixa,.rodape-acoes,.aviso-demo,.chave{display:none !important}
+  .app{padding:0}
+  #vista{padding:0}
+  .laudo{border:none; padding:0; margin:0}
+  .anima{animation:none}
+
+  /* Nada de rolagem no papel: uma caixa com overflow não se parte entre folhas
+     e o que passa da altura da página seria cortado. Na folha a tabela cabe,
+     então ela volta a ser um bloco comum. */
+  .tab-scroll{overflow:visible; margin:0; padding:0}
+  .tab-scroll table{min-width:0}
+  /* Tabela longa repete o cabeçalho na folha seguinte e não parte linha. */
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  /* O que precisa sair inteiro é a unidade de leitura, não a seção — a seção
+     de um transdutor tem treze testes e ocupa várias folhas. */
+  .bloco-res, .teste-desc, .tol-box, .dl, .cabeca-doc,
+  .parecer, .nc, .assin{break-inside:avoid}
+  .aq-linha{break-after:avoid}
+  /* A capa ocupa a folha inteira, como no relatório impresso. */
+  .capa{min-height:88vh; display:flex; flex-direction:column; justify-content:center;
+        border-bottom:none; break-after:page; margin-bottom:0}
+  .capa-rod{margin-top:auto}
+  .cabeca-doc{break-after:avoid}
+  .laudo h3{break-after:avoid}
+  .laudo h4{break-after:avoid}
+  /* Cada transdutor abre uma folha, como no relatório impresso. */
+  .laudo section.bloco{break-before:page}
+}
+</style>
+<style>
+/* --- sensação de aplicativo (Parte 3) ------------------------------------
+   A casca e este coletor são documentos separados; sem a transição abaixo,
+   cada ida e volta pisca em branco. Onde o navegador não a suporta — iOS,
+   hoje — nada acontece e fica como era. */
+@view-transition { navigation: auto; }
+
+html{
+  /* O fundo precisa estar no html: é ele que o navegador pinta durante a
+     navegação, e era daí que vinha o branco. */
+  background:var(--bg);
+  /* Sem puxar-para-recarregar dentro da sala de exame. */
+  overscroll-behavior:none;
+  touch-action:manipulation;
+}
+body{ -webkit-tap-highlight-color:transparent; }
+
+/* Interface não se seleciona; o relatório e os campos, sim. */
+#topo, .acao-fixa, .ab-icone, .glifo, .opcao, .tecla, .bt{
+  -webkit-user-select:none; user-select:none;
+}
+
+/* --- aviso de versão nova ------------------------------------------------
+   O service worker instala a versão nova e fica esperando. Sem este aviso o
+   usuário não tem como saber que ela existe nem como aceitá-la, e o aparelho
+   serve o pacote anterior indefinidamente. */
+.aviso{
+  position:fixed; left:16px; right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom)); z-index:40;
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:11px;
+  background:var(--text); color:var(--bg);
+  box-shadow:0 6px 24px rgba(0,0,0,.28); font-size:12.5px;
+}
+.aviso[hidden]{display:none!important}
+.aviso button{
+  margin-left:auto; flex:none; padding:6px 12px; border:0; border-radius:7px;
+  background:var(--accent); color:#fff; font:600 12px/1 var(--sans); cursor:pointer;
+}
+@media (min-width:640px){ .aviso{left:auto; right:24px; max-width:380px} }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="appbar" id="topo"></header>
+  <main id="vista"></main>
+</div>
+
+<div class="aviso" id="aviso" hidden>
+  <span>Há uma versão mais recente do app.</span>
+  <button id="btAtualizar">Atualizar</button>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   1. Definição dos testes
+   Estrutura derivada de mapa_extracao.json — os mesmos treze testes, os
+   mesmos índices de tabela, a mesma marcação de quais dependem de linha de
+   base. Trocar o mapa troca o formulário: nada aqui é escrito à mão por
+   teste.
+   ========================================================================== */
+
+const GRUPOS = [
+  {id:'imagem',    nome:'Modo B — imagem'},
+  {id:'geometria', nome:'Modo B — geometria'},
+  {id:'alvos',     nome:'Modo B — alvos do simulador'},
+  {id:'doppler',   nome:'Doppler'}
+];
+
+/* Frequência do transdutor. Quando não informada, aplica-se o limite mais
+   restritivo da faixa — nunca aprova o que a norma reprovaria. */
+const fq = tr => (typeof tr.fmax === 'number' && tr.fmax > 0) ? tr.fmax : null;
+const semFq = ' · frequência não informada, limite mais restritivo';
+/* Limite de norma: 1,5 e não 1,50 — é um número redondo, não uma medida. */
+const numTol = v => String(v).replace('.', ',');
+
+/* Avaliadores e limites de critério fixo, conforme a IN nº 96/2021. */
+const CRIT = {
+  distancia: (v, tol) => {
+    const d = Math.abs(v.medida - v.nominal);
+    return (d <= tol || d <= (tol/100)*v.nominal) ? 'conf' : 'nconf';
+  },
+  zonaMorta: f => f === null ? 3   : (f <= 3  ? 7 : (f < 7 ? 5 : 3)),
+  axial:     f => f === null ? 1   : (f > 4   ? 1 : 2),
+  lateral:   f => f === null ? 1.5 : (f < 3.5 ? 4 : (f < 5 ? 3 : 1.5))
+};
+
+/* A tolerância mostrada na tela é a que de fato foi aplicada àquele
+   transdutor; a caixa "Tolerância IN - 96" do relatório é o texto da norma. */
+const tolDe = (t, tr) => typeof t.tol === 'function' ? t.tol(tr) : t.tol;
+
+const TESTES = [
+  {
+    id:'uniformidade', num:'1', grupo:'imagem', base:false,
+    nome:'Uniformidade da imagem',
+    desc:`Este teste avalia a presença de artefatos na imagem. Qualitativamente,
+      espera-se que a imagem não apresente artefatos que comprometam significativamente
+      a visualização de estruturas de baixo e alto contraste em todo o campo de visão.`,
+    tolIN:'Sem artefato que comprometa a visualização',
+    tol:'Sem artefato que comprometa a visualização',
+    tipo:'qualit',
+    opcoes:[['Sem artefato','conf'],['Com artefato','nconf']]
+  },
+  {
+    id:'uniformidade_quant', num:'2', grupo:'imagem', base:false, soT1:true, semAq:true,
+    nome:'Uniformidade da imagem — análise quantitativa',
+    desc:`Quantitativamente, é analisado o perfil dos níveis de cinza ao longo da extensão
+      do campo de visão do transdutor. As quedas de sinal são avaliadas em relação ao valor
+      de referência, correspondente à mediana dos valores de pixel desse perfil. Os valores
+      de pixel são convertidos em intensidade do sinal (dB). A tolerância para a queda de
+      sinal, expressa em dB, é apresentada a seguir.`,
+    tolIN:'< 4db do valor de referência',
+    tol:'< 4 dB do valor de referência',
+    tipo:'tabela', dinamica:true, indice:'Queda', linhas:['1ª','2ª'],
+    aval:v => v.prof < 4 ? 'conf' : 'nconf',
+    cols:[{k:'prof',    r:'Profundidade da queda', un:'dB'},
+          {k:'largura', r:'Largura da queda',      un:'%'}]
+  },
+  {
+    id:'zona_morta', num:'3', grupo:'geometria', base:false,
+    nome:'Zona morta',
+    desc:`Esse teste permite determinar a distância mínima entre o transdutor e o primeiro
+      eco identificável no objeto simulador. Sua tolerância é apresentada abaixo. Nela
+      observamos a dependência do resultado com a frequência.`,
+    tolIN:`≤ 7 mm para frequência ≤ 3 MHz · ≤ 5 mm para 3MHz < frequência < 7 MHz ·
+      ≤ 3 mm para frequência ≥ 7 MHz`,
+    tol:tr => '≤ ' + numTol(CRIT.zonaMorta(fq(tr))) + ' mm' + (fq(tr) === null ? semFq : ''),
+    tipo:'escalar', un:'mm',
+    aval:(v,tr) => v.zm <= CRIT.zonaMorta(fq(tr)) ? 'conf' : 'nconf',
+    campos:[{k:'zm', r:'Profundidade da Zona Morta', un:'mm'}]
+  },
+  {
+    id:'penetracao', num:'4', grupo:'imagem', base:true,
+    nome:'Profundidade de penetração',
+    desc:`Esse teste permite determinar a máxima profundidade que um dado tipo de
+      transdutor, configurado em uma certa frequência, é capaz de alcançar. A tolerância
+      estabelecida para este teste é apresentada abaixo.`,
+    tolIN:'Segundo especificações do fabricante. Desvio < 6 mm do valor de referência (linha de base)',
+    tol:'Desvio < 6 mm da linha de base',
+    tolAbs:0.6,
+    tipo:'escalar', metrica:'prof', un:'cm',
+    campos:[{k:'prof', r:'Profundidade medida', un:'cm'}]
+  },
+  {
+    id:'zona_focal', num:'5', grupo:'imagem', base:true,
+    nome:'Zona focal',
+    desc:`Esse teste permite avaliar se a região onde está o ponto focal é realmente a região
+      que fornece a melhor informação na imagem. É observado se a estrutura avaliada estará
+      com a intensidade e nitidez maiores nesse ponto. A tolerância para esse teste é segundo
+      especificações do fabricante.`,
+    tolIN:'Segundo especificações do fabricante',
+    tol:'Segundo o fabricante · ±15 % da linha de base', tolBase:0.15,
+    tipo:'escalar', metrica:'medida', un:'cm',
+    deriv:v=>({r:'Diferença medida', v:v.medida-v.nominal, un:'cm'}),
+    campos:[{k:'nominal', r:'Profundidade nominal do foco', un:'cm', ctx:true},
+            {k:'medida',  r:'Profundidade medida do foco',  un:'cm'}]
+  },
+  {
+    id:'exatidao_vertical', num:'6', grupo:'geometria', base:false,
+    nome:'Exatidão da medida da distância vertical',
+    desc:`Esse teste tem por objetivo verificar se a distância medida, feita com a
+      ferramenta de medir do equipamento de ultrassom, entre estruturas verticais do
+      simulador, está próxima do valor nominal. A tolerância para esse teste é apresentada
+      abaixo.`,
+    tolIN:'≤ ± 1,5 mm ou ± 1,5 % do valor nominal (valor real)',
+    tol:'≤ ±1,5 mm ou ±1,5 % do nominal',
+    tipo:'escalar', un:'mm', aval:v => CRIT.distancia(v, 1.5),
+    deriv:v=>({r:'Diferença', v:v.medida-v.nominal, un:'mm'}),
+    campos:[{k:'nominal', r:'Distância nominal', un:'mm', ctx:true},
+            {k:'medida',  r:'Distância medida',  un:'mm'}]
+  },
+  {
+    id:'exatidao_horizontal', num:'7', grupo:'geometria', base:false,
+    nome:'Exatidão da medida da distância horizontal',
+    desc:`Esse teste tem por objetivo verificar se a distância medida, feita com a
+      ferramenta de medir do equipamento de ultrassom, entre estruturas horizontais do
+      simulador, está próxima do valor nominal. A tolerância para esse teste é apresentada
+      abaixo.`,
+    tolIN:'≤ ± 2,0 mm ou ± 2,0 % do valor nominal (valor real)',
+    tol:'≤ ±2,0 mm ou ±2,0 % do nominal',
+    tipo:'escalar', un:'mm', aval:v => CRIT.distancia(v, 2.0),
+    deriv:v=>({r:'Diferença', v:v.medida-v.nominal, un:'mm'}),
+    campos:[{k:'nominal', r:'Distância nominal', un:'mm', ctx:true},
+            {k:'medida',  r:'Distância medida',  un:'mm'}]
+  },
+  {
+    id:'resolucao', num:'8', grupo:'geometria', base:false,
+    nome:'Resolução axial e lateral',
+    desc:`Resolução axial — Esse teste permite avaliar a capacidade do sistema resolver
+      (enxergar separadamente) estruturas que estão no mesmo sentido de propagação do feixe
+      de ultrassom. O nosso objeto simulador oferece a possibilidade de realizar esse teste
+      em diferentes profundidades (1, 3,5 e 6 cm). A capacidade de avaliar a resolução em
+      todas elas depende da profundidade de penetração máxima que o feixe é capaz de
+      alcançar. Por isso, quando o alcance for pequeno, o resultado apresentado será “alvos
+      não podem ser visualizados nessa profundidade”. A tolerância para esse teste é
+      apresentada abaixo.
+
+      Resolução lateral — Esse teste permite avaliar a capacidade do sistema resolver
+      (enxergar separadamente) estruturas que estão perpendiculares ao sentido de propagação
+      do feixe de ultrassom. O nosso objeto simulador oferece a possibilidade de realizar
+      esse teste em diferentes profundidades (1,3,5 e 6 cm). A capacidade de avaliar a
+      resolução em todas elas depende da profundidade de penetração máxima que o feixe é
+      capaz de alcançar. Por isso, quando o alcance for pequeno, o resultado apresentado
+      será “alvos não podem ser visualizados nessa profundidade”. A tolerância para esse
+      teste é apresentada abaixo.`,
+    tolIN:`Axial: ≤ 2 mm para transdutores com frequência ≤ 4 MHz · ≤ 1 mm para transdutores
+      com frequências > 4 MHz. Lateral: ≤ 4 mm para transdutores com frequência < 3,5 MHz ·
+      <3 mm para transdutores com frequências ≥ 3,5 MHz e < 5 MHz · < 1,5 mm para
+      transdutores com frequências ≥ 5 MHz`,
+    tol:tr => 'axial ≤ ' + numTol(CRIT.axial(fq(tr))) + ' mm · lateral ≤ ' +
+              numTol(CRIT.lateral(fq(tr))) + ' mm' + (fq(tr) === null ? semFq : ''),
+    tipo:'escalar', un:'mm',
+    aval:(v,tr) => (v.axial <= CRIT.axial(fq(tr)) && v.lateral <= CRIT.lateral(fq(tr)))
+                   ? 'conf' : 'nconf',
+    campos:[{k:'axial',   r:'Resolução axial',   un:'mm'},
+            {k:'lateral', r:'Resolução lateral', un:'mm'}]
+  },
+  {
+    id:'objetos_anecoicos', num:'9', grupo:'alvos', base:true,
+    nome:'Visualização de objetos anecoicos',
+    desc:`Esse teste permite avaliar a capacidade de um sistema de imagem de detectar e
+      exibir o tamanho, forma e a profundidade de uma estrutura anecoica dentro do phantom.
+      Permite avaliar também a capacidade de detectar e exibir a forma e características
+      ecogênicas de uma estrutura. O phantom apresenta objetos anecoicos de diferentes
+      diâmetros (1, 2 e 4 mm).
+
+      De acordo com o manual do phantom, os alvos devem parecer circulares e com bordas bem
+      nítidas, indicando uma transição da região ecogênica para a região anecoica. Além
+      disso os alvos devem estar livres de quaisquer ecos internos. Com o passar do tempo,
+      sob as mesmas condições de aquisição, é esperado que os resultados sejam semelhantes.
+      A tolerância exigida é apresentada abaixo.`,
+    tolIN:'Segundo especificações do fabricante do equipamento e do simulador',
+    tol:'Não perder objetos em relação à linha de base', tolBase:'exato',
+    tipo:'tabela', metrica:'qtd', indice:'Diâmetro (mm)', linhas:[2,3,4,6,8],
+    cols:[{k:'qtd', r:'Quantidade de objetos visualizados', un:''}]
+  },
+  {
+    id:'distorcao', num:'10', grupo:'alvos', base:true,
+    nome:'Distorção de objeto anecoico',
+    desc:`Complementa a visualização de objetos anecoicos medindo altura e largura de um
+      alvo de diâmetro conhecido. A razão entre as duas revela distorção geométrica do
+      campo, e é esperado que se mantenha estável entre visitas sob a mesma técnica.`,
+    tolIN:'Segundo especificações do fabricante do equipamento e do simulador',
+    tol:'±10 % da linha de base', tolBase:0.10,
+    tipo:'tabela', metrica:'razao', indice:'Diâmetro (mm)', linhas:[8],
+    cols:[{k:'alt',   r:'Altura',  un:'cm'},
+          {k:'larg',  r:'Largura', un:'cm'},
+          {k:'razao', r:'Razão',   un:''}]
+  },
+  {
+    id:'limiar', num:'11', grupo:'alvos', base:true,
+    nome:'Limiar de sensibilidade abaixo contraste',
+    desc:`Esse teste avalia um grupo de alvos que variam em ecogenicidade em relação ao
+      fundo. É esperado que os alvos apareçam circulares, com bordas nítidas e com variação
+      de contraste. A tolerância para esse teste é apresentada abaixo.`,
+    tolIN:'Segundo especificações do fabricante do equipamento e do simulador',
+    tol:'Manter o que era visto nas visitas anteriores',
+    tipo:'booleana', indice:'Alvo', linhas:[1,2,3,4,5,6],
+    cols:[{k:'contraste', r:'Apresenta contraste'},
+          {k:'borda',     r:'Borda Nítida'},
+          {k:'circular',  r:'Alvo Circular'}]
+  },
+  {
+    id:'doppler_velocidade', num:'12', grupo:'doppler', base:true, semAq:true,
+    nome:'Acurácia da velocidade do fluxo',
+    desc:`Medida da velocidade do fluxo em uma profundidade fixa, sendo igual a 7 cm para
+      transdutores setoriais e convexos e 4 cm para transdutores lineares e
+      endocavitários.`,
+    tolIN:'Segundo especificações do fabricante do equipamento e do simulador',
+    tol:'Variação ≤ ±10 % do nominal',
+    tipo:'tabela', metrica:'varia', indice:'Fluxo (ml/s)', linhas:['4,0','10,0'],
+    aval:v => Math.abs(v.varia) <= 10 ? 'conf' : 'nconf',
+    cols:[{k:'nominal', r:'Velocidade nominal',  un:'cm/s', ctx:true},
+          {k:'medida',  r:'Velocidade medida',   un:'cm/s'},
+          {k:'varia',   r:'Variação percentual', un:'%'}]
+  },
+  {
+    id:'doppler_sensibilidade', num:'13', grupo:'doppler', base:true, semAq:true,
+    nome:'Sensibilidade do sinal doppler',
+    desc:`Este teste determina a profundidade na qual o sinal Doppler útil é detectado.
+      Para tanto mede-se o alcance máximo no qual o sinal Doppler é detectado no vaso
+      inclinado, a partir da região mais próxima do transdutor, através do sinal Doppler
+      audível e do espectro do sinal Doppler visualizado na tela. Pode ser realizado com
+      fluxo contínuo ou pulsado.`,
+    tolIN:'Segundo especificações do fabricante do equipamento e do simulador',
+    tol:'±15 % da linha de base', tolBase:0.15,
+    tipo:'tabela', metrica:'color', indice:'Fluxo (ml/s)', linhas:['4,0','10,0'],
+    cols:[{k:'color',     r:'Modo colorido - Fluxo contínuo', un:'cm'},
+          {k:'espectral', r:'Modo espectral - Fluxo pulsado', un:'cm'}]
+  }
+];
+
+const POR_ID = Object.fromEntries(TESTES.map(t=>[t.id,t]));
+const testesDe = slot => TESTES.filter(t => !t.soT1 || slot === 'T1');
+const linhasDe = (t, reg) =>
+  (t.dinamica && reg && reg.linhas) ? Object.keys(reg.linhas) : t.linhas;
+
+/* ==========================================================================
+   2. Parque de equipamentos
+   Dois equipamentos com identificação, técnica e medidas de demonstração;
+   e um terceiro cadastrado e ainda sem visita.
+   Em produção isto vem do banco — aqui está embutido para a demonstração
+   rodar sem rede.
+   ========================================================================== */
+
+const TIPOS_TRANSD = ['Linear', 'Convexo', 'Setorial', 'Endocavitário', 'Volumétrico'];
+
+/* Espaço reservado ao logotipo de quem emite o relatório. Enquanto não há
+   identidade visual carregada, sai a marca d'água neutra abaixo; para usar um
+   logotipo próprio basta trocar este SVG por <img src="..."> na capa e no
+   cabeçalho de folha. Nada aqui identifica empresa alguma. */
+const MARCA = '<svg viewBox="0 0 64 24" aria-hidden="true">' +
+  '<path d="M2 12h6l3-8 5 16 4-12 3 4h5"/>' +
+  '<circle cx="46" cy="12" r="2.4"/><path d="M53 6.5a8 8 0 0 1 0 11"/>' +
+  '<path d="M57.5 3a13 13 0 0 1 0 18"/></svg>';
+
+/* Vistoria do equipamento — o que se confere na sala antes de medir.
+
+   Não é teste do Anexo I: não tem tolerância, instrumento nem incerteza. E não
+   é vistoria de radioproteção como nos coletores de raios X — ultrassom não
+   emite radiação ionizante, então não há sinalização luminosa, vestimenta
+   plumbífera nem dosimetria individual a conferir. O que entra aqui é o estado
+   do console, do monitor e dos transdutores, a biossegurança e a documentação.
+
+   Agrupada na ordem em que se percorre o equipamento: da tomada ao monitor,
+   do monitor aos transdutores, e por fim a pasta de documentos. */
+const VISTORIA = [
+  {grupo:'Console e alimentação', itens:[
+    'Cabo de alimentação (rachaduras, plugues, descoloração)',
+    'Aterramento do equipamento verificado',
+    'Console do digitalizador (livre de danos)',
+    'Filtros de poeira (limpos e desobstruídos)',
+    'Controles (botões e interruptores limpos, sem quebra)'
+  ]},
+  {grupo:'Monitor e ajustes', itens:[
+    'Tela (limpa, livre de arranhões, controles de brilho e contraste)',
+    'TGC (ajuste do ganho com a profundidade funcionando)',
+    'Brilho e contraste no padrão de trabalho do serviço'
+  ]},
+  {grupo:'Transdutores e biossegurança', itens:[
+    'Cabos e conectores dos transdutores sem dano',
+    'Lentes acústicas sem trinca, bolha ou delaminação',
+    'Protocolo de desinfecção dos transdutores disponível e em uso',
+    'Gel acústico dentro da validade e em recipiente próprio'
+  ]},
+  {grupo:'Documentação', itens:[
+    'Manual do fabricante disponível no serviço',
+    'Registro dos testes de aceitação e da linha de base',
+    'Registro de treinamento da equipe no equipamento'
+  ]}
+];
+
+/* A lista achatada é a que grava e a que o relatório percorre: a chave de cada
+   item é o próprio texto, então mexer na redação de um item existente desliga a
+   vistoria já gravada dele. */
+const INSPECAO_EQUIP = VISTORIA.reduce((a, g) => a.concat(g.itens), []);
+const INSPECAO_TRANSD = ['Transdutor', 'Interferência'];
+
+/* A instituição — hospital, clínica ou unidade de pronto atendimento — é o
+   primeiro nível de navegação e o primeiro nível da chave de linha de base,
+   por isso é uma entidade própria e não um texto repetido em cada
+   equipamento. Mesma hierarquia do coletor de raios X. */
+/* Acervo de demonstração. Os nomes são deliberadamente genéricos: instituição
+   inventada com cara de real acaba coincidindo com uma que existe, e nome de
+   responsável técnico vem com número de registro profissional junto — que é
+   de alguém. Marca e modelo de equipamento são de catálogo público e ficam
+   como estão, porque é o que dá verossimilhança à demonstração. */
+const HOSPITAIS = [
+  {id:'hospex', nome:'Hospital Exemplo', cnpj:'00.000.000/0001-00',
+   endereco:'Rua Exemplo, 100 · Bairro Exemplo',
+   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
+   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
+   alvara:'Alvará sanitário 0000/000000'},
+
+  {id:'clinex', nome:'Clínica Exemplo', cnpj:'00.000.000/0002-00',
+   endereco:'Avenida Exemplo, 200 · Bairro Exemplo',
+   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
+   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
+   alvara:'Alvará sanitário 0000/000000'},
+
+  {id:'upaex', nome:'UPA Exemplo', cnpj:'00.000.000/0003-00',
+   endereco:'Praça Exemplo, 300 · Bairro Exemplo',
+   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
+   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
+   alvara:'Alvará sanitário 0000/000000'}
+];
+
+const hospPorId = id => HOSPITAIS.find(h => h.id === id) ||
+  {id:'', nome:'—', endereco:'', cidade:'', cep:'', telefone:'', rt:'', alvara:'', cnpj:''};
+const hospDe = eq => hospPorId(eq.hosp);
+const equipDe = hospId => PARQUE.filter(e => e.hosp === hospId);
+
+/* O cadastro do parque vem preenchido — instituição, equipamento,
+   transdutor e técnica são dados de acervo, não de coleta. As MEDIDAS
+   começam vazias: cada visita entra em branco, com os cabeçalhos dos treze
+   testes prontos e os campos esperando digitação. O botão de demonstração
+   despeja o acervo real de medidas por cima. */
+const PARQUE = [
+  {
+    id:'US-0614', relatorio:'2026/0471', periodicidade:'Anual',
+    visita:'20/07/2026', validade:'19/07/2027',
+    hosp:'hospex', unidade:'Unidade Exemplo I',
+    marca:'Philips', modelo:'Affiniti 70G', ns:'US216F0721',
+    patrimonio:'—', setor:'Ultrassom', sala:'Diagnóstico por imagem',
+    transdutores:[
+      {slot:'T1', tipo:'Linear',  modelo:'L12-3', ns:'21F07PHN', cod:'US-5836', fmax:12,
+       tec:{protocolo:'Vasc Carótida', potencia:'-0,5 dB', ad:'61', profmax:'10 cm',
+            rejeicao:'0', graymap:'3', bandafocal:'0', densidade:'2'}},
+      {slot:'T2', tipo:'Linear',  modelo:'L12-5', ns:'21F0BXHZ', cod:'US-6324', fmax:12,
+       tec:{protocolo:'Vasc Carótida', potencia:'—', ad:'56', profmax:'8 cm',
+            rejeicao:'0', graymap:'2', bandafocal:'0', densidade:'2'}},
+      {slot:'T3', tipo:'Convexo', modelo:'C5-1',  ns:'21F0DQPK', cod:'US-7131', fmax:4,
+       tec:{protocolo:'Abdome geral', potencia:'—', ad:'60', profmax:'16 cm',
+            rejeicao:'0', graymap:'3', bandafocal:'2', densidade:'3'}}
+    ],
+    medidas:{}
+  },
+
+  /* --- Segundo equipamento do acervo, em outra instituição. As medidas de
+     demonstração cobrem os treze testes dos três transdutores. */
+  {
+    id:'US-0378', relatorio:'2026/0403', periodicidade:'Anual',
+    visita:'01/07/2026', validade:'30/06/2027',
+    hosp:'clinex', unidade:'Unidade Exemplo II',
+    marca:'GE', modelo:'LOGIQ E9', ns:'LE9117690US8',
+    patrimonio:'051979', setor:'Ultrassom', sala:'Hemodinâmica',
+    transdutores:[
+      {slot:'T1', tipo:'Linear',  modelo:'9L-D',     ns:'216589WP2', cod:'US-0356-L1', fmax:9,
+       tec:{protocolo:'Carótida', potencia:'100', ad:'72', profmax:'20 cm',
+            rejeicao:'0', graymap:'H', bandafocal:'0', densidade:'2'}},
+      {slot:'T2', tipo:'Linear',  modelo:'ML6-15-D', ns:'115480YP6', cod:'US-0378-L2', fmax:15,
+       tec:{protocolo:'Carótida', potencia:'100', ad:'72', profmax:'12 cm',
+            rejeicao:'0', graymap:'H', bandafocal:'2', densidade:'1'}},
+      {slot:'T3', tipo:'Convexo', modelo:'C1-5-D',   ns:'121040YP0', cod:'US-0356-C2', fmax:5,
+       tec:{protocolo:'Abdome', potencia:'100', ad:'69', profmax:'33 cm',
+            rejeicao:'0', graymap:'G', bandafocal:'2', densidade:'3'}}
+    ],
+    medidas:{}
+  },
+
+  /* --- Cadastrado, ainda sem visita. É o estado em que um equipamento novo
+     nasce: identificação e transdutores preenchidos, zero medidas. */
+  {
+    id:'US-0912', relatorio:'', periodicidade:'Anual',
+    visita:'', validade:'',
+    hosp:'upaex', unidade:'Unidade Exemplo III',
+    marca:'Mindray', modelo:'DC-40', ns:'DC40D9922',
+    patrimonio:'062441', setor:'Ultrassom', sala:'Sala de procedimentos',
+    semHistorico:true,
+    transdutores:[
+      {slot:'T1', tipo:'Convexo', modelo:'C5-2s',  ns:'D9922KX1', cod:'US-0913', fmax:5,
+       tec:{protocolo:'Abdome geral', potencia:'—', ad:'—', profmax:'—',
+            rejeicao:'—', graymap:'—', bandafocal:'—', densidade:'—'}},
+      {slot:'T2', tipo:'Linear',  modelo:'L12-4s', ns:'D9922KX2', cod:'US-0914', fmax:12,
+       tec:{protocolo:'Partes moles', potencia:'—', ad:'—', profmax:'—',
+            rejeicao:'—', graymap:'—', bandafocal:'—', densidade:'—'}}
+    ],
+    medidas:{}
+  }
+];
+
+/* --- acervo de medidas de demonstração ---------------------------------
+   Só entra em cena pelo botão da tela inicial ou do equipamento. --------- */
+const DEMO_MEDIDAS = {
+  'US-0614': {
+        T1:{
+          uniformidade:{aq:'Gn 54 · Fc 1,5 · Fr Gen · Pr 5', res:'Sem artefato', obs:''},
+          zona_focal:{aq:'Gn 58 · Fc 3 · Fr Gen · Pr 6', nominal:3.0, medida:3.0},
+          penetracao:{aq:'Gn 60 · Fc 10 · Fr Pen · Pr 10', prof:9.0},
+          uniformidade_quant:{aq:'',
+            linhas:{'1ª':{prof:2.1, largura:11.0}, '2ª':{prof:3.4, largura:6.5}, '3ª':{prof:3.8, largura:3.8}}},
+          zona_morta:{aq:'Gn 78 · Fc 1 · Fr Res · Pr 4,5', zm:1.0},
+          exatidao_vertical:{aq:'Gn 62 · Fc 4 · Fr Res · Pr 6', nominal:40.0, medida:40.2},
+          exatidao_horizontal:{aq:'Gn 65 · Fc 5 · Fr Res · Pr 7', nominal:2.00, medida:2.04},
+          resolucao:{aq:'Gn 67 · Fc 7 · Fr Res · Pr 10', axial:1.0, lateral:1.0},
+          objetos_anecoicos:{aq:'Gn 60 · Fc 10 · Fr Pen · Pr 10',
+            linhas:{2:{qtd:4}, 3:{qtd:4}, 4:{qtd:6}, 6:{qtd:8}, 8:{qtd:8}}},
+          distorcao:{aq:'Gn 68 · Fc 2 · Fr Res · Pr 4',
+            linhas:{8:{alt:0.75, larg:0.73, razao:1.03}}},
+          limiar:{aq:'Gn 65 · Fc 5 · Fr Res · Pr 7',
+            linhas:{1:{contraste:1,borda:1,circular:1}, 2:{contraste:1,borda:1,circular:1},
+                    3:{contraste:1,borda:1,circular:0}, 4:{contraste:1,borda:1,circular:1},
+                    5:{contraste:0,borda:0,circular:1}, 6:{contraste:1,borda:1,circular:1}}},
+          doppler_velocidade:{aq:'',
+            linhas:{'4,0':{nominal:70.0, medida:73.9, varia:5.6},
+                    '10,0':{nominal:143.0, medida:171.0, varia:19.6}}},
+          doppler_sensibilidade:{aq:'',
+            linhas:{'4,0':{color:7.88, espectral:7.32}, '10,0':{color:7.64, espectral:7.63}}}
+        },
+        T2:{
+          uniformidade:{aq:'Gn 70 · Fc 4 · Fr Gen · Pr 4', res:'Sem artefato', obs:''},
+          zona_focal:{aq:'Gn 66 · Fc 2,5 · Fr Gen · Pr 5', nominal:2.5, medida:2.6},
+          penetracao:{aq:'Gn 62 · Fc 8 · Fr Pen · Pr 8', prof:7.4},
+          zona_morta:{aq:'Gn 65 · Fc 0,25 · Fr Gen · Pr 4,5', zm:1.0},
+          exatidao_vertical:{aq:'Gn 60 · Fc 4 · Fr Res · Pr 6', nominal:40.0, medida:39.7},
+          exatidao_horizontal:{aq:'Gn 63 · Fc 5 · Fr Res · Pr 6', nominal:2.00, medida:1.98},
+          resolucao:{aq:'Gn 64 · Fc 6 · Fr Res · Pr 8', axial:1.0, lateral:1.0},
+          objetos_anecoicos:{aq:'Gn 62 · Fc 8 · Fr Pen · Pr 8',
+            linhas:{2:{qtd:4}, 3:{qtd:4}, 4:{qtd:6}, 6:{qtd:6}, 8:{qtd:6}}},
+          distorcao:{aq:'Gn 66 · Fc 2 · Fr Res · Pr 4',
+            linhas:{8:{alt:0.78, larg:0.76, razao:1.03}}},
+          limiar:{aq:'Gn 63 · Fc 5 · Fr Res · Pr 6',
+            linhas:{1:{contraste:1,borda:1,circular:1}, 2:{contraste:1,borda:1,circular:1},
+                    3:{contraste:1,borda:1,circular:1}, 4:{contraste:1,borda:1,circular:1},
+                    5:{contraste:0,borda:0,circular:1}, 6:{contraste:1,borda:1,circular:1}}},
+          doppler_velocidade:{aq:'',
+            linhas:{'4,0':{nominal:70.0, medida:72.1, varia:3.0},
+                    '10,0':{nominal:143.0, medida:150.3, varia:5.1}}},
+          doppler_sensibilidade:{aq:'',
+            linhas:{'4,0':{color:6.90, espectral:6.55}, '10,0':{color:6.72, espectral:6.60}}}
+        },
+        T3:{
+          uniformidade:{aq:'Gn 58 · Fc 6 · Fr Gen · Pr 12', res:'Com artefato',
+            obs:'Banda vertical discreta no terço lateral direito do campo.'},
+          zona_focal:{aq:'Gn 60 · Fc 6 · Fr Gen · Pr 12', nominal:6.0, medida:6.1},
+          penetracao:{aq:'Gn 64 · Fc 14 · Fr Pen · Pr 16', prof:13.4},
+          zona_morta:{aq:'Gn 70 · Fc 1 · Fr Gen · Pr 6', zm:2.0},
+          exatidao_vertical:{aq:'Gn 62 · Fc 6 · Fr Res · Pr 10', nominal:40.0, medida:40.4},
+          exatidao_horizontal:{aq:'Gn 64 · Fc 6 · Fr Res · Pr 10', nominal:2.00, medida:2.05},
+          resolucao:{aq:'Gn 66 · Fc 7 · Fr Res · Pr 8', axial:1.5, lateral:1.8},
+          objetos_anecoicos:{aq:'Gn 64 · Fc 14 · Fr Pen · Pr 16',
+            linhas:{2:{qtd:2}, 3:{qtd:4}, 4:{qtd:6}, 6:{qtd:8}, 8:{qtd:8}}},
+          distorcao:{aq:'Gn 66 · Fc 3 · Fr Res · Pr 8',
+            linhas:{8:{alt:0.80, larg:0.74, razao:1.08}}},
+          limiar:{aq:'Gn 64 · Fc 6 · Fr Res · Pr 10',
+            linhas:{1:{contraste:1,borda:1,circular:1}, 2:{contraste:1,borda:1,circular:1},
+                    3:{contraste:1,borda:1,circular:1}, 4:{contraste:1,borda:0,circular:1},
+                    5:{contraste:0,borda:0,circular:0}, 6:{contraste:1,borda:1,circular:1}}},
+          doppler_velocidade:{aq:'',
+            linhas:{'4,0':{nominal:70.0, medida:67.8, varia:-3.1},
+                    '10,0':{nominal:143.0, medida:137.9, varia:-3.6}}},
+          doppler_sensibilidade:{aq:'',
+            linhas:{'4,0':{color:11.40, espectral:10.85}, '10,0':{color:11.10, espectral:10.90}}}
+        }
+      },
+  'US-0378': {
+        T1:{
+          uniformidade:{aq:'Gn 50 · Fc 1 · Fr 9 · Pr 4', res:'Com artefato', obs:'Bandas verticais'},
+          zona_focal:{aq:'Gn 50 · Fc 5 · Fr 7 · Pr 9', nominal:5.0, medida:5.06},
+          penetracao:{aq:'Gn 40 · Fc 19 · Fr 5 · Pr 20', prof:17.0},
+          uniformidade_quant:{aq:'',
+            linhas:{'1ª':{prof:3.19, largura:2.64}, '2ª':{prof:5.55, largura:4.67}}},
+          zona_morta:{aq:'Gn 50 · Fc 1 · Fr 7 · Pr 4', zm:1.0},
+          exatidao_vertical:{aq:'Gn 50 · Fc 5 · Fr 7 · Pr 9', nominal:2.0, medida:2.03},
+          exatidao_horizontal:{aq:'Gn 50 · Fc 5 · Fr 7 · Pr 9', nominal:2.0, medida:2.0},
+          resolucao:{aq:'Gn 30 · Fc 6,5 · Fr 9 · Pr 9', axial:1.0, lateral:1.0},
+          objetos_anecoicos:{aq:'Gn 40 · Fc 19 · Fr 5 · Pr 20',
+            linhas:{2:{qtd:6}, 3:{qtd:16}, 4:{qtd:16}, 6:{qtd:8}, 8:{qtd:8}}},
+          distorcao:{aq:'Gn 50 · Fc 2 · Fr 9 · Pr 3,5',
+            linhas:{8:{alt:0.76, larg:0.71, razao:1.07}}},
+          limiar:{aq:'Gn 50 · Fc 5 · Fr 7 · Pr 7',
+            linhas:{1:{contraste:1,borda:1,circular:1}, 2:{contraste:1,borda:1,circular:1},
+                    3:{contraste:1,borda:0,circular:0}, 4:{contraste:1,borda:1,circular:1},
+                    5:{contraste:1,borda:1,circular:1}, 6:{contraste:1,borda:1,circular:1}}},
+          doppler_velocidade:{aq:'',
+            linhas:{'4,0':{nominal:70.0, medida:78.7, varia:12.4},
+                    '10,0':{nominal:143.0, medida:141.2, varia:-1.3}}},
+          doppler_sensibilidade:{aq:'',
+            linhas:{'4,0':{color:10.0, espectral:10.0}, '10,0':{color:10.0, espectral:10.0}}}
+        },
+        T2:{
+          uniformidade:{aq:'Gn 70 · Fc 3 · Fr 13 · Pr 4', res:'Sem artefato', obs:''},
+          zona_focal:{aq:'Gn 60 · Fc 5 · Fr 11 · Pr 7', nominal:5.0, medida:5.04},
+          penetracao:{aq:'Gn 85 · Fc 9,5 · Fr 9 · Pr 12', prof:11.0},
+          zona_morta:{aq:'Gn 60 · Fc 1 · Fr 11 · Pr 3,5', zm:1.0},
+          exatidao_vertical:{aq:'Gn 60 · Fc 5 · Fr 11 · Pr 7', nominal:2.0, medida:2.03},
+          exatidao_horizontal:{aq:'Gn 60 · Fc 5 · Fr 11 · Pr 7', nominal:2.0, medida:2.03},
+          resolucao:{aq:'Gn 40 · Fc 3,5 · Fr 15 · Pr 5', axial:1.0, lateral:1.0},
+          objetos_anecoicos:{aq:'Gn 85 · Fc 9,5 · Fr 9 · Pr 12',
+            linhas:{2:{qtd:6}, 3:{qtd:6}, 4:{qtd:7}, 6:{qtd:3}, 8:{qtd:3}}},
+          distorcao:{aq:'Gn 85 · Fc 2 · Fr 13 · Pr 3,5',
+            linhas:{8:{alt:0.76, larg:0.70, razao:1.09}}},
+          limiar:{aq:'Gn 85 · Fc 5 · Fr 9 · Pr 6',
+            linhas:{1:{contraste:1,borda:1,circular:1}, 2:{contraste:1,borda:1,circular:1},
+                    3:{contraste:1,borda:0,circular:1}, 4:{contraste:1,borda:1,circular:1},
+                    5:{contraste:1,borda:1,circular:1}, 6:{contraste:1,borda:1,circular:1}}},
+          doppler_velocidade:{aq:'',
+            linhas:{'4,0':{nominal:70.0, medida:75.6, varia:8.0},
+                    '10,0':{nominal:143.0, medida:152.1, varia:6.4}}},
+          doppler_sensibilidade:{aq:'',
+            linhas:{'4,0':{color:7.38, espectral:6.90}, '10,0':{color:7.02, espectral:5.60}}}
+        },
+        T3:{
+          uniformidade:{aq:'Gn 80 · Fc 4,5 · Fr 5 · Pr 5', res:'Sem artefato', obs:''},
+          zona_focal:{aq:'Gn 65 · Fc 2 · Fr 5 · Pr 5', nominal:2.0, medida:1.95},
+          penetracao:{aq:'Gn 66 · Fc 19 · Fr 2,8 · Pr 20', prof:17.0},
+          zona_morta:{aq:'Gn 80 · Fc 1,6 · Fr 4,7 · Pr 4', zm:1.0},
+          exatidao_vertical:{aq:'Gn 65 · Fc 5 · Fr 5 · Pr 9', nominal:2.0, medida:2.02},
+          exatidao_horizontal:{aq:'Gn 76 · Fc 5 · Fr 4,7 · Pr 9', nominal:2.0, medida:2.18},
+          resolucao:{aq:'Gn 40 · Fc 6,4 · Fr 5 · Pr 9', axial:1.0, lateral:1.0},
+          objetos_anecoicos:{aq:'Gn 66 · Fc 14 · Fr 2,8 · Pr 19',
+            linhas:{2:{qtd:6}, 3:{qtd:10}, 4:{qtd:14}, 6:{qtd:8}, 8:{qtd:8}}},
+          distorcao:{aq:'Gn 65 · Fc 1,5 · Fr 5 · Pr 4',
+            linhas:{8:{alt:0.73, larg:0.69, razao:1.06}}},
+          limiar:{aq:'Gn 65 · Fc 5,5 · Fr 5 · Pr 6',
+            linhas:{1:{contraste:1,borda:1,circular:1}, 2:{contraste:1,borda:1,circular:1},
+                    3:{contraste:1,borda:0,circular:0}, 4:{contraste:1,borda:1,circular:1},
+                    5:{contraste:1,borda:1,circular:1}, 6:{contraste:1,borda:1,circular:1}}},
+          doppler_velocidade:{aq:'',
+            linhas:{'4,0':{nominal:70.0, medida:67.1, varia:-4.1},
+                    '10,0':{nominal:143.0, medida:143.7, varia:0.5}}},
+          doppler_sensibilidade:{aq:'',
+            linhas:{'4,0':{color:10.0, espectral:10.0}, '10,0':{color:10.0, espectral:10.0}}}
+        }
+      }
+};
+
+/* Converte a string compacta de aquisição em campos editáveis. */
+function parseAq(s){
+  const o = {Gn:'', Fc:'', Fr:'', Pr:''};
+  (s || '').split(' · ').forEach(p=>{
+    const [k, ...v] = p.split(' ');
+    if (k in o) o[k] = v.join(' ');
+  });
+  return o;
+}
+/* Despeja o acervo de medidas num equipamento — e o inverso, que devolve a
+   visita ao estado em branco. O cadastro (hospital, equipamento, transdutor,
+   técnica) não é tocado por nenhum dos dois. */
+const temDemo = eq => !!DEMO_MEDIDAS[eq.id];
+
+/* Abrir a tela de um teste cria o registro vazio que os campos precisam para
+   escrever. Isso não é medida: só conta como coletado o registro que tem
+   algum valor de fato — senão navegar pelo roteiro faria a visita parecer
+   iniciada. */
+function regPreenchido(reg){
+  for (const k of Object.keys(reg)){
+    if (k === 'acq') continue;
+    const v = reg[k];
+    if (k === 'linhas'){
+      for (const l of Object.keys(v))
+        for (const c of Object.keys(v[l])) if (!nada(v[l][c])) return true;
+    } else if (!nada(v)) return true;
+  }
+  return false;
+}
+const temMedidasTransd = (eq, slot) => !!(eq.medidas && eq.medidas[slot]) &&
+  Object.keys(eq.medidas[slot]).some(tid => regPreenchido(eq.medidas[slot][tid]));
+const temMedidas = eq => Object.keys(eq.medidas).some(slot => temMedidasTransd(eq, slot));
+/* Transdutores desta visita que ainda não têm nenhuma medida — os que entram
+   depois de a demonstração já ter sido gerada caem aqui. */
+const transdVazios = eq => eq.transdutores.filter(tr => !temMedidasTransd(eq, tr.slot));
+
+/* --- medidas geradas para transdutor fora do acervo ----------------------
+   Um transdutor cadastrado agora não tem relatório de onde copiar. Em vez de
+   ficar de fora da demonstração, recebe medidas coerentes com a sua própria
+   frequência: os testes de critério fixo saem dentro da tolerância que a IN
+   nº 96 aplica àquele transdutor, e os de linha de base, em valores plausíveis
+   para a faixa. O sorteio é semeado pela identidade do transdutor — a mesma
+   demonstração se repete igual, e dois transdutores não saem iguais. */
+function medidasSinteticas(eq, tr){
+  const semente = eq.id + '|' + tr.slot + '|' + tr.ns + '|' + tr.modelo;
+  const s  = (k, a, b) => a + embaralhar(semente + '|' + k) * (b - a);
+  const n  = (k, a, b, casas) => +s(k, a, b).toFixed(casas);
+  const um = (k, lista) => lista[Math.min(lista.length - 1, Math.floor(s(k, 0, lista.length)))];
+  const f  = fq(tr) || 3.5;
+
+  /* Quanto maior a frequência, menor o alcance — e do alcance saem quase
+     todas as outras grandezas do transdutor. */
+  const alvo = Math.max(4.5, 17 - 1.2 * f);
+  const prof = n('pen', alvo - 0.7, alvo + 0.7, 1);
+  const foco = +(prof * 0.4).toFixed(1);
+  const dec  = v => String(+(+v).toFixed(1)).replace('.', ',');
+  const aq = (k, fr, fc, pr) =>
+    ({Gn:String(Math.round(s(k + 'gn', 54, 72))), Fc:dec(fc), Fr:fr, Pr:dec(pr)});
+
+  const zmLim = CRIT.zonaMorta(f), axLim = CRIT.axial(f), latLim = CRIT.lateral(f);
+
+  /* Os alvos de menor contraste são os que somem primeiro. */
+  const limiar = {};
+  [1,2,3,4,5,6].forEach(i=>{
+    const fraco = i >= 5;
+    limiar[i] = {contraste: fraco && s('c'+i,0,1) < .55 ? 0 : 1,
+                 borda:     fraco && s('b'+i,0,1) < .45 ? 0 : 1,
+                 circular:  s('r'+i,0,1) < .10 ? 0 : 1};
+  });
+
+  const velocidade = fx => {
+    const nominal = fx === '4,0' ? 70.0 : 143.0;
+    const medida  = +(nominal * (1 + s('dv'+fx, -0.07, 0.07))).toFixed(1);
+    return {nominal, medida, varia:+(((medida / nominal) - 1) * 100).toFixed(1)};
+  };
+  const alcance = fx => {
+    const color = +(prof * s('ds'+fx, 0.80, 0.92)).toFixed(2);
+    return {color, espectral:+(color * s('de'+fx, 0.93, 0.99)).toFixed(2)};
+  };
+
+  const alt = n('dalt', 0.72, 0.82, 2);
+  const razao = n('draz', 0.98, 1.07, 2);
+
+  const todos = {
+    uniformidade:{acq:aq('uni', 'Gen', foco, prof * 0.9),
+      res:'Sem artefato', obs:''},
+    uniformidade_quant:{acq:parseAq(''),
+      linhas:{'1ª':{prof:n('uq1p', 1.2, 2.8, 1), largura:n('uq1l', 4.0, 12.0, 1)},
+              '2ª':{prof:n('uq2p', 2.0, 3.6, 1), largura:n('uq2l', 3.0, 9.0, 1)}}},
+    zona_morta:{acq:aq('zm', 'Res', 1, 4.5),
+      zm:n('zmv', zmLim * 0.30, zmLim * 0.75, 1)},
+    penetracao:{acq:aq('pn', 'Pen', prof, prof + 1), prof},
+    zona_focal:{acq:aq('zf', 'Gen', foco, prof * 0.7),
+      nominal:foco, medida:+(foco * s('zfm', 0.96, 1.05)).toFixed(1)},
+    exatidao_vertical:{acq:aq('ev', 'Res', foco, prof * 0.7),
+      nominal:40.0, medida:n('evm', 39.55, 40.45, 1)},
+    exatidao_horizontal:{acq:aq('eh', 'Res', foco, prof * 0.7),
+      nominal:2.00, medida:n('ehm', 1.94, 2.06, 2)},
+    resolucao:{acq:aq('rs', 'Res', foco, prof * 0.8),
+      axial:n('rsa', axLim * 0.5, axLim * 0.95, 1),
+      lateral:n('rsl', latLim * 0.45, latLim * 0.9, 1)},
+    objetos_anecoicos:{acq:aq('oa', 'Pen', prof, prof + 1),
+      linhas:{2:{qtd:um('a2',[2,4,4])}, 3:{qtd:um('a3',[4,4,6])},
+              4:{qtd:um('a4',[4,6,6])}, 6:{qtd:um('a6',[6,6,8])},
+              8:{qtd:um('a8',[6,8,8])}}},
+    distorcao:{acq:aq('ds', 'Res', foco, prof * 0.5),
+      linhas:{8:{alt, larg:+(alt / razao).toFixed(2), razao}}},
+    limiar:{acq:aq('lm', 'Res', foco, prof * 0.7), linhas:limiar},
+    doppler_velocidade:{acq:parseAq(''),
+      linhas:{'4,0':velocidade('4,0'), '10,0':velocidade('10,0')}},
+    doppler_sensibilidade:{acq:parseAq(''),
+      linhas:{'4,0':alcance('4,0'), '10,0':alcance('10,0')}}
+  };
+
+  /* Só entram os testes que se aplicam ao slot — a análise quantitativa de
+     uniformidade é feita uma vez por equipamento, no T1. */
+  const saida = {};
+  testesDe(tr.slot).forEach(t =>
+    saida[t.id] = Object.assign({marca:null, marcaObs:''}, todos[t.id]));
+  return saida;
+}
+
+/* Despeja o acervo de medidas num equipamento. O transdutor que não estiver no
+   acervo — porque foi cadastrado depois — recebe medidas geradas para a sua
+   própria frequência, em vez de ficar em branco. Com `slot`, só aquele
+   transdutor é preenchido e o resto da visita fica como está. */
+function gerarDemo(eq, slot){
+  const fonte = DEMO_MEDIDAS[eq.id] || {};
+  const alvos = slot ? eq.transdutores.filter(tr => tr.slot === slot) : eq.transdutores;
+  if (!alvos.length) return false;
+
+  if (!slot){ eq.medidas = {}; eq.inspTransd = {}; }
+  eq.medidas    = eq.medidas    || {};
+  eq.inspTransd = eq.inspTransd || {};
+
+  alvos.forEach(tr=>{
+    if (fonte[tr.slot]){
+      const copia = JSON.parse(JSON.stringify(fonte[tr.slot]));
+      Object.keys(copia).forEach(tid=>{
+        copia[tid].acq = parseAq(copia[tid].aq);
+        delete copia[tid].aq;
+      });
+      eq.medidas[tr.slot] = copia;
+    } else {
+      eq.medidas[tr.slot] = medidasSinteticas(eq, tr);
+    }
+    /* A inspeção visual faz parte da visita, e sai no relatório junto. */
+    eq.inspTransd[tr.slot] = {};
+    INSPECAO_TRANSD.forEach(i => eq.inspTransd[tr.slot][i] = 'Conforme');
+  });
+
+  if (!slot || !eq.inspecao || !Object.keys(eq.inspecao).length){
+    eq.inspecao = {};
+    eq.inspObs = {};
+    INSPECAO_EQUIP.forEach(i => eq.inspecao[i] = 'Conforme');
+  }
+  return true;
+}
+
+/* Um teste só. É o que o botão dentro do teste chama: o resto da visita fica
+   como está, inclusive as marcações de ELB e de não aplicável dos outros. */
+function gerarDemoTeste(eq, tr, testeId){
+  const doAcervo = (DEMO_MEDIDAS[eq.id] || {})[tr.slot];
+  let medida;
+  if (doAcervo && doAcervo[testeId]){
+    medida = JSON.parse(JSON.stringify(doAcervo[testeId]));
+    medida.acq = parseAq(medida.aq);
+    delete medida.aq;
+  } else {
+    medida = medidasSinteticas(eq, tr)[testeId];
+  }
+  if (!medida) return false;
+  eq.medidas[tr.slot] = eq.medidas[tr.slot] || {};
+  eq.medidas[tr.slot][testeId] = Object.assign({marca:null, marcaObs:''}, medida);
+  return true;
+}
+
+/* Devolve um teste à folha em branco, sem tocar nos demais. */
+function limparTeste(eq, slot, testeId){
+  if (eq.medidas[slot]) delete eq.medidas[slot][testeId];
+  registro(eq, slot, testeId);
+}
+
+const limparMedidas = eq => { eq.medidas = {}; eq.inspecao = {}; eq.inspObs = {};
+                             eq.inspTransd = {};
+                             if (typeof esquecerVisita === 'function') esquecerVisita(eq.id); };
+/* Apaga a visita de um transdutor só — o cadastro dele não é tocado. */
+const limparTransd = (eq, slot) => {
+  if (eq.medidas)    delete eq.medidas[slot];
+  if (eq.inspTransd) delete eq.inspTransd[slot];
+};
+const podeHistorico = eq => !eq.semHistorico && temMedidas(eq);
+
+/* ==========================================================================
+   3. Histórico e linha de base
+   As visitas anteriores. Em produção saem do banco, agrupadas pela chave
+   instituição · unidade · N/S do equipamento · N/S do transdutor ·
+   protocolo, e só entre medidas de mesma técnica.
+   ========================================================================== */
+
+const ANOS = [2023, 2024, 2025];
+
+function embaralhar(semente){
+  let h = 2166136261;
+  for (let i=0; i<semente.length; i++){ h ^= semente.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 1000) / 1000;
+}
+
+/* Séries fixadas onde o desvio precisa ser visível e explicável. */
+const DESVIOS = {
+  'US-0614|T1|penetracao|·|prof':       [9.5, 9.4, 9.3],
+  'US-0614|T3|penetracao|·|prof':       [15.8, 15.3, 14.8],
+  'US-0614|T1|limiar|3|circular':       [1, 1, 1],
+  'US-0614|T3|limiar|5|contraste':      [1, 1, 1],
+  'US-0614|T1|distorcao|8|razao':       [1.00, 1.01, 1.00],
+  'US-0614|T1|objetos_anecoicos|2|qtd': [6, 6, 6],
+  'US-0378|T1|limiar|3|borda':             [1, 1, 1],
+  'US-0378|T3|limiar|3|circular':          [1, 1, 1],
+  'US-0378|T2|objetos_anecoicos|8|qtd':    [6, 6, 5],
+  'US-0378|T2|penetracao|·|prof':          [12.4, 12.1, 11.8]
+};
+
+const chaveSerie = (eqId, slot, testeId, linha, col) =>
+  eqId + '|' + slot + '|' + testeId + '|' + (linha === undefined ? '·' : linha) + '|' + col;
+
+/* Devolve [{ano, v}] das visitas anteriores, ou null se não houver o que
+   comparar. Equipamento sem visita anterior não tem série alguma. */
+function serie(eq, slot, testeId, linha, col){
+  if (eq.semHistorico) return null;
+  const ch = chaveSerie(eq.id, slot, testeId, linha, col);
+  if (DESVIOS[ch]) return ANOS.map((a,i)=>({ano:a, v:DESVIOS[ch][i]}));
+
+  const reg = eq.medidas[slot] && eq.medidas[slot][testeId];
+  if (!reg) return null;
+  const atual = linha === undefined ? reg[col] : (reg.linhas && reg.linhas[linha] || {})[col];
+  if (typeof atual !== 'number') return null;
+
+  /* Sim/Não e contagens de objetos não admitem jitter: um alvo é visto ou
+     não é, e meio objeto não existe. Só grandezas contínuas variam. */
+  const t = POR_ID[testeId];
+  if (t && t.tipo === 'booleana') return ANOS.map(ano=>({ano, v:atual}));
+  const inteiro = t && t.tolBase === 'exato';
+
+  return ANOS.map(ano=>{
+    const j = (embaralhar(ch + ano) - 0.5) * 0.06;   // ±3 %
+    const v = atual * (1 + j);
+    return {ano, v: inteiro ? Math.round(v)
+                            : (Math.abs(atual) >= 10 ? +v.toFixed(1) : +v.toFixed(2))};
+  });
+}
+
+function linhaBase(eq, slot, testeId, linha, col){
+  const s = serie(eq, slot, testeId, linha, col);
+  if (!s || !s.length) return null;
+  return {serie:s, ref: s.reduce((a,b)=>a+b.v, 0) / s.length, n:s.length};
+}
+
+/* ==========================================================================
+   4. Avaliação
+   Três caminhos: critério fixo (a norma dá o limite), linha de base (a
+   referência vem do histórico) e ELB — o estado de hoje, em que não há
+   histórico e o campo sai em branco no relatório.
+   ========================================================================== */
+
+const ROTULOS = {conf:'conforme', nconf:'não conforme', elb:'ELB',
+                 na:'não aplicável', pend:'pendente'};
+/* No laudo a avaliação sai em caixa de título — "Conforme", "Não Conforme".
+   Nas telas de coleta o rótulo continua em caixa baixa, que é o desenho do
+   aplicativo. */
+const ROTULOS_DOC = {conf:'Conforme', nconf:'Não Conforme', elb:'ELB',
+                     na:'Não Aplicável', pend:'Pendente'};
+const SITUACOES = ['conf', 'nconf', 'elb', 'na', 'pend'];
+const contagemZero = () => ({conf:0, nconf:0, elb:0, na:0, pend:0});
+
+/* "Não aplicável" é o único estado que não pesa: um teste que não se aplica
+   não torna a visita pior. Sem valor inicial no reduce, uma lista só de NA
+   continua sendo NA em vez de virar "conforme". */
+const PESO = {restr:6, nconf:5, elb:4, pend:3, conf:2, na:1};
+const pior = arr => arr.length ? arr.reduce((a,b)=> PESO[b] > PESO[a] ? b : a) : 'pend';
+
+const nada = v => v === null || v === undefined || v === '';
+
+function contraBase(t, eq, slot, linha, col, valor){
+  if (!ESTADO.historico) return null;
+  const lb = linhaBase(eq, slot, t.id, linha, col);
+  if (lb === null || typeof valor !== 'number') return null;
+
+  const b = {ref:lb.ref, serie:lb.serie, delta:valor - lb.ref};
+
+  /* Contagem de objetos: o critério é não perder alvos, não ficar perto. */
+  if (t.tolBase === 'exato')
+    return Object.assign(b, {pct:null, banda:null,
+      situacao: Math.round(valor) >= Math.round(lb.ref) ? 'conf' : 'nconf'});
+
+  /* Penetração: a IN-96 dá a tolerância em milímetros, não em porcentagem. */
+  if (typeof t.tolAbs === 'number')
+    return Object.assign(b, {pct:null, banda:[lb.ref - t.tolAbs, lb.ref + t.tolAbs],
+      situacao: Math.abs(b.delta) <= t.tolAbs ? 'conf' : 'nconf'});
+
+  const tol = t.tolBase || 0.10;
+  const pct = lb.ref === 0 ? 0 : b.delta / lb.ref;
+  return Object.assign(b, {pct, banda:[lb.ref*(1-tol), lb.ref*(1+tol)],
+    situacao: Math.abs(pct) <= tol ? 'conf' : 'nconf'});
+}
+
+function avaliar(t, eq, tr){
+  const reg = eq.medidas[tr.slot] && eq.medidas[tr.slot][t.id];
+  if (!reg) return {situacao:'pend', texto:'—'};
+
+  /* Marcação manual do técnico vence a avaliação automática. */
+  if (reg.marca === 'na')  return {situacao:'na',  texto:'não se aplica'};
+  if (reg.marca === 'elb') return {situacao:'elb', texto:'nova linha de base'};
+
+  if (t.tipo === 'qualit'){
+    if (nada(reg.res)) return {situacao:'pend', texto:'—'};
+    const op = t.opcoes.find(o => o[0] === reg.res);
+    return {situacao: op ? op[1] : 'pend', texto: reg.res};
+  }
+
+  if (t.tipo === 'escalar'){
+    if (t.campos.some(c => nada(reg[c.k]))) return {situacao:'pend', texto:'—'};
+    const m = t.campos.find(c => !c.ctx);
+    if (t.aval) return {situacao: t.aval(reg, tr), texto: fmt(reg[m.k]) + ' ' + m.un};
+    const r = contraBase(t, eq, tr.slot, undefined, t.metrica, reg[t.metrica]);
+    return r ? {situacao:r.situacao, texto: fmt(reg[t.metrica]) + ' ' + t.un}
+             : {situacao:'elb', texto: fmt(reg[t.metrica]) + ' ' + t.un};
+  }
+
+  const linhas = linhasDe(t, reg);
+  if (linhas.some(l => t.cols.some(c => nada((reg.linhas[l]||{})[c.k]))))
+    return {situacao:'pend', texto:'—'};
+
+  if (t.tipo === 'booleana'){
+    if (!ESTADO.historico) return {situacao:'elb', texto:'—'};
+    let mudou = 0;
+    linhas.forEach(l => t.cols.forEach(c => {
+      const s = serie(eq, tr.slot, t.id, l, c.k);
+      if (s && s.every(p => p.v === 1) && reg.linhas[l][c.k] === 0) mudou++;
+    }));
+    return {situacao: mudou ? 'nconf' : 'conf',
+            texto: mudou ? mudou + (mudou > 1 ? ' alvos mudaram' : ' alvo mudou') : 'estável'};
+  }
+
+  const sits = linhas.map(l => {
+    const v = reg.linhas[l];
+    if (t.aval) return t.aval(v, tr);
+    const r = contraBase(t, eq, tr.slot, l, t.metrica, v[t.metrica]);
+    return r ? r.situacao : 'elb';
+  });
+  const s = pior(sits);
+  const fora = sits.filter(x => x === 'nconf').length;
+  const n = linhas.length;
+  return {situacao:s, texto:
+    s === 'elb' ? n + ' linhas sem referência'
+    : fora      ? fora + ' de ' + n + ' fora'
+                : n + ' linhas conformes'};
+}
+
+function resumoTransd(eq, tr){
+  const lista = testesDe(tr.slot);
+  const contagem = contagemZero();
+  lista.forEach(t => { contagem[avaliar(t, eq, tr).situacao]++; });
+  const sits = SITUACOES.filter(k => contagem[k] > 0 && k !== 'pend');
+  return {total:lista.length, contagem, situacao: sits.length ? pior(sits) : 'pend'};
+}
+
+function resumoHospital(h){
+  const lista = equipDe(h.id);
+  const geral = contagemZero();
+  let total = 0, semVisita = 0;
+  lista.forEach(eq => {
+    const r = resumoEquip(eq);
+    SITUACOES.forEach(k => geral[k] += r.geral[k]);
+    total += r.total;
+    if (!eq.visita) semVisita++;
+  });
+  const feitos = total - geral.pend;
+  const sits = SITUACOES.filter(k => geral[k] > 0 && k !== 'pend');
+  return {equipamentos:lista.length, semVisita, geral, total, feitos,
+          situacao: feitos ? pior(sits) : 'pend'};
+}
+
+function resumoEquip(eq){
+  const geral = contagemZero();
+  let total = 0;
+  eq.transdutores.forEach(tr => {
+    const r = resumoTransd(eq, tr);
+    SITUACOES.forEach(k => geral[k] += r.contagem[k]);
+    total += r.total;
+  });
+  const feitos = total - geral.pend;
+  const sits = SITUACOES.filter(k => geral[k] > 0 && k !== 'pend');
+  return {geral, total, feitos, situacao: feitos ? pior(sits) : 'pend'};
+}
+
+/* ==========================================================================
+   5. Utilitários
+   ========================================================================== */
+
+const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function fmt(v, casas){
+  if (nada(v)) return '—';
+  if (typeof v !== 'number') return String(v);
+  const c = casas !== undefined ? casas : (Math.abs(v) >= 100 ? 1 : 2);
+  return v.toFixed(c).replace('.', ',');
+}
+const val = v => nada(v) ? '' : (typeof v === 'number' ? fmt(v) : String(v));
+const pctTxt = p => (p > 0 ? '+' : '') + (p*100).toFixed(1).replace('.', ',') + ' %';
+const num = s => { const n = parseFloat(String(s).replace(',', '.')); return isNaN(n) ? null : n; };
+
+function sparkline(base, atual){
+  const pts = base.serie.map(p => p.v).concat([atual]);
+  const banda = base.banda;
+  const todos = pts.concat(banda || []);
+  let min = Math.min(...todos), max = Math.max(...todos);
+  const folga = (max - min) * 0.28 || Math.abs(max)*0.1 || 1;
+  min -= folga; max += folga;
+
+  const W = 240, H = 74, PX = 6;
+  const x = i => PX + i * ((W - PX*2) / (pts.length - 1));
+  const y = v => H - 10 - ((v - min) / (max - min)) * (H - 22);
+
+  const bandaSvg = banda ? `<rect x="0" y="${y(banda[1]).toFixed(1)}" width="${W}"
+      height="${Math.max(1,(y(banda[0]) - y(banda[1]))).toFixed(1)}"
+      fill="var(--accent)" opacity=".09"/>` : '';
+  const caminho = pts.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const bolinhas = pts.slice(0,-1).map((v,i)=>
+    `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.4" fill="var(--muted)"/>`).join('');
+  const fim = pts.length - 1;
+  const cor = 'var(--' + (base.situacao === 'conf' ? 'ok' : 'warn') + ')';
+
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Histórico: ${base.serie.map(p=>p.ano+' '+fmt(p.v)).join(', ')}; esta visita ${fmt(atual)}.">
+    ${bandaSvg}
+    <line x1="0" y1="${y(base.ref).toFixed(1)}" x2="${W}" y2="${y(base.ref).toFixed(1)}"
+          stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>
+    <path d="${caminho}" fill="none" stroke="var(--muted)" stroke-width="1.6"
+          stroke-linejoin="round" stroke-linecap="round" opacity=".75"/>
+    ${bolinhas}
+    <circle cx="${x(fim).toFixed(1)}" cy="${y(pts[fim]).toFixed(1)}" r="5.5" fill="${cor}" opacity=".22"/>
+    <circle cx="${x(fim).toFixed(1)}" cy="${y(pts[fim]).toFixed(1)}" r="3.2" fill="${cor}"/>
+  </svg>
+  <div class="spark-leg"><span>${base.serie[0].ano}</span><span>esta visita</span></div>`;
+}
+
+/* ==========================================================================
+   6. Estado e roteamento
+   ========================================================================== */
+
+const ESTADO = {vista:'hospitais', hosp:null, equip:null, slot:null, teste:null,
+                historico:false, busca:'', rascunho:null};
+
+const hospAtual  = () => hospPorId(ESTADO.hosp);
+const equipAtual = () => PARQUE.find(e => e.id === ESTADO.equip);
+const transdAtual = () => equipAtual().transdutores.find(t => t.slot === ESTADO.slot);
+
+
+/* --- histórico -----------------------------------------------------------
+   Sem isto o botão voltar do aparelho salta o coletor inteiro e volta ao
+   menu, perdendo o transdutor em que se estava. Cada `ir` empilha; o voltar
+   do sistema desempilha, e só na raiz é que ele sai para a casca. */
+function instantaneo(){
+  return {vista: ESTADO.vista, hosp: ESTADO.hosp, equip: ESTADO.equip,
+          slot: ESTADO.slot, teste: ESTADO.teste};
+}
+
+addEventListener('popstate', function(ev){
+  if (ev.state && ev.state.vista) {
+    Object.assign(ESTADO, ev.state, {rascunho: null});
+    window.scrollTo(0, 0);
+    render();
+  }
+});
+
+function ir(vista, extra){
+  Object.assign(ESTADO, {vista}, extra || {});
+  window.scrollTo(0, 0);
+  history.pushState(instantaneo(), '', '#' + vista);
+  render();
+}
+
+/* --- barra do aplicativo ------------------------------------------------
+   Cada tela declara seu título e para onde o botão de voltar leva. A raiz
+   troca o botão pelo símbolo do produto e ganha os dois ícones de canto. */
+const ICONE = {
+  voltar:'<path d="M15 18l-6-6 6-6"/>',
+  tema:'<path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10l1.4 1.4M3 12h2m14 0h2M5.6 18.4L7 17m10-10l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
+  sobre:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
+};
+
+function topo(o){
+  const esquerda = o.voltar
+    ? `<button class="ab-icone" id="abVoltar" data-alvo="${esc(o.voltar)}" aria-label="Voltar">
+         <svg viewBox="0 0 24 24">${ICONE.voltar}</svg></button>`
+    : `<a class="ab-icone" href="index.html" aria-label="Todas as modalidades"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.8"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.8"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.8"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.8"/></svg></a>`;
+
+  const direita = o.raiz
+    ? `<button class="ab-icone leve" id="abTema" aria-label="Alternar tema">
+         <svg viewBox="0 0 24 24">${ICONE.tema}</svg></button>
+       <button class="ab-icone leve" id="abSobre" aria-label="Sobre esta demonstração">
+         <svg viewBox="0 0 24 24">${ICONE.sobre}</svg></button>`
+    : '';
+
+  el('topo').innerHTML = `${esquerda}
+    <div class="ab-tit"><b>${esc(o.titulo)}</b>${o.sub ? `<span>${esc(o.sub)}</span>` : ''}</div>
+    ${direita}`;
+}
+
+/* Ação principal da tela, ancorada no rodapé. */
+const acaoFixa = html => `<div class="acao-fixa">${html}</div>`;
+
+/* Cria o registro de um teste sob demanda, para que um equipamento recém
+   cadastrado possa ser medido normalmente. */
+function registro(eq, slot, testeId){
+  const t = POR_ID[testeId];
+  eq.medidas[slot] = eq.medidas[slot] || {};
+  let r = eq.medidas[slot][testeId];
+  if (!r){
+    r = {acq:{Gn:'', Fc:'', Fr:'', Pr:''}, marca:null, marcaObs:''};
+    if (t.tipo === 'qualit'){ r.res = ''; r.obs = ''; }
+    else if (t.tipo === 'escalar'){ t.campos.forEach(c => r[c.k] = null); }
+    else {
+      r.linhas = {};
+      t.linhas.forEach(l => { r.linhas[l] = {}; t.cols.forEach(c => r.linhas[l][c.k] = null); });
+    }
+    eq.medidas[slot][testeId] = r;
+  }
+  return r;
+}
+
+function chaveHistorico(){
+  const on = ESTADO.historico;
+  return `<div class="chave">
+    <div class="cnt">
+      <b>${on ? 'Com o acervo carregado — 2023 a 2025' : 'Sem histórico — como é hoje'}</b>
+      <p>${on
+        ? 'A linha de base sai das visitas anteriores. Cada medida é comparada com a sua referência e o relatório sai avaliado.'
+        : 'Primeira medida da combinação: sem referência para comparar, o campo sai como <span class="mono">ELB</span> e alguém digita à mão.'}</p>
+    </div>
+    <button class="interruptor" id="btHist" aria-pressed="${on}" aria-label="Alternar acervo histórico"></button>
+  </div>`;
+}
+function ligarChave(){
+  const b = el('btHist');
+  if (b) b.addEventListener('click', ()=>{ ESTADO.historico = !ESTADO.historico; render(); });
+}
+
+/* ==========================================================================
+   7. Navegação do acervo — instituição, equipamento, transdutor
+   Três níveis, e em cada um a opção de cadastrar o que ainda não existe.
+   A ordem é a mesma do coletor de raios X: primeiro onde, depois o quê.
+   ========================================================================== */
+
+function caixaBusca(dica){
+  return `<div class="busca">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg>
+    <input id="cBusca" type="search" placeholder="${esc(dica)}"
+           value="${esc(ESTADO.busca)}" autocomplete="off">
+  </div>`;
+}
+function ligarBusca(){
+  const b = el('cBusca');
+  if (!b) return;
+  b.addEventListener('input', ()=>{
+    ESTADO.busca = b.value;
+    render();
+    const n = el('cBusca');
+    n.focus(); n.setSelectionRange(n.value.length, n.value.length);
+  });
+}
+
+const botaoNovo = (id, titulo, texto) => `
+  <button class="novo" id="${id}">
+    <span class="mais" aria-hidden="true">+</span>
+    <span><b>${esc(titulo)}</b><span>${esc(texto)}</span></span>
+  </button>`;
+
+/* --- nível 1: instituições (hospital, clínica, UPA) --------------------- */
+function telaHospitais(){
+  const alvo = ESTADO.busca.trim().toLowerCase();
+  const visiveis = HOSPITAIS.filter(h =>
+    !alvo || [h.nome, h.endereco, h.cidade].join(' ').toLowerCase().includes(alvo));
+
+  const cartoes = visiveis.map(h=>{
+    const r = resumoHospital(h);
+    const pct = r.total ? Math.round((r.feitos / r.total) * 100) : 0;
+    return `<button class="equip anima" data-h="${esc(h.id)}">
+      <div class="l1">
+        <span class="cod">${esc(h.nome)}</span>
+        <span class="chip c-${r.situacao}">${
+          r.equipamentos ? ROTULOS[r.situacao] : 'sem equipamentos'}</span>
+      </div>
+      <div class="cli">${esc(h.endereco)} · ${esc(h.cidade)}</div>
+      ${r.semVisita ? `<div class="cli" style="color:var(--warn); margin-top:2px">
+        ${r.semVisita} equipamento${r.semVisita > 1 ? 's aguardando' : ' aguardando'} a 1ª visita</div>` : ''}
+      <div class="l3">
+        <span class="progresso"><i style="width:${pct}%"></i></span>
+        <span class="pct mono">${r.equipamentos} equipamento${r.equipamentos === 1 ? '' : 's'}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  const totalEq = PARQUE.length;
+  const comDemo = PARQUE.filter(temDemo);
+  const preenchidos = PARQUE.filter(temMedidas).length;
+
+  topo({raiz:true, titulo:'Coletor de campo', sub:'Ultrassom · IN nº 96/2021 · sem rede'});
+
+  el('vista').innerHTML = `
+    <div style="margin:16px 0 12px">
+      <h1>Controle de Qualidade de Ultrassom</h1>
+      <div class="sub">IN nº 96/2021 · RDC 611/2022 · ${HOSPITAIS.length} instituições ·
+        ${totalEq} equipamentos · ${preenchidos
+          ? preenchidos + ' com medidas' : 'nenhuma visita iniciada'}</div>
+    </div>
+
+    ${caixaBusca('Buscar hospital ou clínica por nome, endereço ou cidade')}
+
+    <p class="rotulo">Hospitais e clínicas</p>
+    <div class="lista">
+      ${cartoes || '<p class="vazio-msg">Nenhuma instituição corresponde à busca.</p>'}
+      ${botaoNovo('btNovoH', 'Cadastrar nova instituição',
+                  'Nome, endereço e cidade — depois vêm os equipamentos')}
+    </div>
+
+    <p class="rotulo">Demonstração</p>
+    <div class="card pad">
+      <p class="base-nota" style="margin:0 0 13px">
+        O cadastro do parque vem pronto, mas as visitas começam <b>em branco</b> — é assim
+        que o coletor chega na sala de exame. O botão abaixo despeja as medidas reais dos
+        relatórios ${esc(comDemo.map(e => e.modelo).join(' e '))} nos respectivos
+        equipamentos, para você ver o roteiro preenchido e o relatório fechado.
+      </p>
+    </div>
+
+    <p class="sub" style="margin-top:18px; max-width:66ch">
+      A instituição é o primeiro nível da chave de linha de base: duas medidas só se
+      comparam dentro da mesma instituição, na mesma unidade, no mesmo equipamento e
+      no mesmo transdutor.
+    </p>
+
+    ${acaoFixa(`
+      ${preenchidos ? '<button class="bt" id="btLimpar">Limpar medidas</button>' : ''}
+      <button class="bt principal" id="btDemo">${
+        preenchidos ? 'Regerar demonstração' : 'Gerar dados de demonstração'}</button>`)}`;
+
+  ligarBusca();
+  document.querySelectorAll('.equip').forEach(b =>
+    b.addEventListener('click', ()=> ir('parque', {hosp:b.dataset.h, equip:null, busca:''})));
+  el('btNovoH').addEventListener('click', ()=> ir('cadHospital', {rascunho:null}));
+  /* forEach passa o índice no segundo argumento, e gerarDemo lê o segundo
+     argumento como slot de transdutor: sem o wrapper, do segundo equipamento
+     em diante a demonstração não gerava nada. */
+  el('btDemo').addEventListener('click', ()=>{ comDemo.forEach(e => gerarDemo(e)); render(); });
+  const bl = el('btLimpar');
+  if (bl) bl.addEventListener('click', ()=>{
+    if (confirm('Apagar todas as medidas coletadas? O cadastro do parque não é afetado.')){
+      PARQUE.forEach(limparMedidas);
+      render();
+    }
+  });
+}
+
+/* --- cadastro de instituição --------------------------------------------- */
+const CAMPOS_HOSP = [
+  {k:'nome',     r:'Nome do hospital ou clínica', req:true, larg:2},
+  {k:'cnpj',     r:'CNPJ'},
+  {k:'endereco', r:'Endereço'},
+  {k:'cidade',   r:'Cidade', req:true},
+  {k:'cep',      r:'CEP'},
+  {k:'telefone', r:'Telefone'},
+  {k:'rt',       r:'Responsável técnico', larg:2},
+  {k:'alvara',   r:'Licença sanitária'}
+];
+
+function telaCadHospital(){
+  const d = ESTADO.rascunho = ESTADO.rascunho ||
+    {nome:'', cnpj:'', endereco:'', cidade:'São Paulo', cep:'', telefone:'', rt:'', alvara:''};
+
+  const faltando = CAMPOS_HOSP.filter(c => c.req && !String(d[c.k]).trim()).map(c => c.r);
+  const duplicado = HOSPITAIS.some(h =>
+    h.nome.trim().toLowerCase() === d.nome.trim().toLowerCase() && d.nome.trim());
+
+  topo({voltar:'hospitais', titulo:'Nova instituição'});
+
+  el('vista').innerHTML = `
+    <p class="sub" style="margin:14px 0 4px">Depois de salvar, você já cadastra o primeiro
+      equipamento dela.</p>
+
+    <div class="card pad">
+      <div class="form-grid">${CAMPOS_HOSP.map(c=>
+        `<div class="campo-form" ${c.larg ? 'style="grid-column:span ' + c.larg + '"' : ''}>
+          <label for="h-${c.k}">${esc(c.r)}${c.req ? ' *' : ''}</label>
+          <input id="h-${c.k}" data-f="${c.k}" value="${esc(d[c.k])}" autocomplete="off">
+        </div>`).join('')}</div>
+    </div>
+
+    ${duplicado ? `<p class="sub" style="margin-top:16px; color:var(--warn)">
+      Já existe uma instituição com esse nome.</p>`
+    : faltando.length ? `<p class="sub" style="margin-top:16px; color:var(--warn)">
+      Falta preencher: ${esc(faltando.join(', '))}.</p>` : ''}
+
+    ${acaoFixa(`
+      <button class="bt" id="btCancelar">Cancelar</button>
+      <button class="bt principal" id="btSalvarH"
+              ${faltando.length || duplicado ? 'disabled' : ''}>Cadastrar instituição</button>`)}`;
+
+  document.querySelectorAll('[data-f]').forEach(inp =>
+    inp.addEventListener('input', ()=>{
+      d[inp.dataset.f] = inp.value;
+      const falta = CAMPOS_HOSP.some(c => c.req && !String(d[c.k]).trim());
+      const dup = HOSPITAIS.some(h =>
+        h.nome.trim().toLowerCase() === d.nome.trim().toLowerCase() && d.nome.trim());
+      el('btSalvarH').disabled = falta || dup;
+    }));
+
+  el('btCancelar').addEventListener('click', ()=> ir('hospitais', {rascunho:null}));
+  el('btSalvarH').addEventListener('click', ()=>{
+    const h = {
+      id:'h' + Date.now().toString(36),
+      nome:d.nome.trim(), cnpj:d.cnpj.trim(), endereco:d.endereco.trim(),
+      cidade:d.cidade.trim(), cep:d.cep.trim(), telefone:d.telefone.trim(),
+      rt:d.rt.trim(), alvara:d.alvara.trim()
+    };
+    HOSPITAIS.push(h);
+    ir('parque', {hosp:h.id, rascunho:null, busca:''});
+  });
+}
+
+/* --- nível 2: equipamentos da instituição -------------------------------- */
+function telaParque(){
+  const h = hospAtual();
+  const alvo = ESTADO.busca.trim().toLowerCase();
+  const lista = equipDe(h.id);
+  const visiveis = lista.filter(eq => !alvo ||
+    [eq.id, eq.marca, eq.modelo, eq.ns, eq.unidade, eq.setor, eq.sala, eq.patrimonio]
+      .join(' ').toLowerCase().includes(alvo));
+
+  const cartoes = visiveis.map(eq=>{
+    const r = resumoEquip(eq);
+    const pct = Math.round((r.feitos / r.total) * 100);
+    const nunca = !eq.visita;
+    return `<button class="equip anima" data-eq="${esc(eq.id)}">
+      <div class="l1">
+        <span class="cod">${esc(eq.marca)} ${esc(eq.modelo)}</span>
+        <span class="chip c-${r.situacao}">${nunca ? 'aguardando 1ª visita' : ROTULOS[r.situacao]}</span>
+      </div>
+      <div class="cli">${esc(eq.unidade) || '—'} · ${esc(eq.setor)} · ${esc(eq.sala) || '—'}</div>
+      <div class="cli mono" style="margin-top:2px">${esc(eq.id)} · N/S ${esc(eq.ns)} ·
+        ${eq.transdutores.length} transdutor${eq.transdutores.length > 1 ? 'es' : ''}</div>
+      <div class="l3">
+        <span class="progresso"><i style="width:${pct}%"></i></span>
+        <span class="pct mono">${nunca ? 'nenhuma medida' : r.feitos + '/' + r.total + ' medidos'}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  const vazio = lista.length === 0;
+
+  topo({voltar:'hospitais', titulo:h.nome, sub:h.cidade});
+
+  el('vista').innerHTML = `
+    <p class="sub" style="margin:14px 0 12px">${esc(h.endereco) || '—'}${
+      h.cep ? ' · ' + esc(h.cep) : ''}${h.telefone ? ' · ' + esc(h.telefone) : ''}${
+      h.rt ? '<br>Responsável técnico: ' + esc(h.rt) + ' · ' + esc(h.alvara) : ''}</p>
+
+    ${lista.length > 3 ? caixaBusca('Buscar por marca, modelo, N/S, código ou sala') : ''}
+
+    <p class="rotulo">Equipamentos de ultrassom</p>
+    <div class="lista">
+      ${vazio
+        ? '<p class="vazio-msg">Esta instituição ainda não tem equipamento cadastrado.</p>'
+        : (cartoes || '<p class="vazio-msg">Nenhum equipamento corresponde à busca.</p>')}
+      ${botaoNovo('btNovo', 'Cadastrar novo equipamento',
+                  'Identificação, local e transdutores — antes da primeira visita')}
+    </div>
+
+    <p class="sub" style="margin-top:18px; max-width:66ch">
+      A coleta fica no próprio aparelho e sobrevive ao fechamento do navegador.
+      Sem rede na sala de exame, a visita inteira roda offline; a fila sobe quando
+      o sinal volta.
+    </p>`;
+
+  ligarBusca();
+  document.querySelectorAll('.equip').forEach(b =>
+    b.addEventListener('click', ()=> ir('equip', {equip:b.dataset.eq, slot:null, busca:''})));
+  el('btNovo').addEventListener('click', ()=> ir('cadastro', {rascunho:null}));
+}
+
+/* ==========================================================================
+   8. Cadastro de equipamento
+   ========================================================================== */
+
+const CAMPOS_EQUIP = [
+  {k:'unidade',     r:'Unidade',           dica:'Se o hospital tiver mais de uma'},
+  {k:'setor',       r:'Setor'},
+  {k:'sala',        r:'Sala'},
+  {k:'marca',       r:'Marca',             req:true},
+  {k:'modelo',      r:'Modelo',            req:true},
+  {k:'ns',          r:'Número de série',   req:true},
+  {k:'id',          r:'Código do equipamento', req:true, dica:'Identifica o equipamento no acervo'},
+  {k:'patrimonio',  r:'Patrimônio'}
+];
+
+function rascunhoNovo(){
+  return {
+    id:'', unidade:'', setor:'Ultrassom', sala:'',
+    marca:'', modelo:'', ns:'', patrimonio:'', periodicidade:'Anual',
+    transdutores:[transdutorNovo()]
+  };
+}
+const transdutorNovo = () =>
+  ({tipo:'Linear', modelo:'', ns:'', cod:'', protocolo:'', fmax:''});
+
+/* Primeiro slot livre. Contar os transdutores não serve depois de uma
+   remoção: um equipamento com T1 e T3 daria T3 de novo. */
+function proximoSlot(eq){
+  const usados = new Set(eq.transdutores.map(t => t.slot));
+  let i = 1;
+  while (usados.has('T' + i)) i++;
+  return 'T' + i;
+}
+
+/* Campos de cada transdutor no formulário. */
+const CAMPOS_TRANSD = [
+  {k:'modelo',    r:'Modelo',            dica:'L12-3'},
+  {k:'ns',        r:'Número de série'},
+  {k:'cod',       r:'Código'},
+  {k:'protocolo', r:'Protocolo',         dica:'Vasc Carótida'},
+  {k:'fmax',      r:'Freq. máxima (MHz)', dica:'define o limite de resolução'}
+];
+
+function telaCadastro(){
+  const d = ESTADO.rascunho = ESTADO.rascunho || rascunhoNovo();
+
+  const campos = CAMPOS_EQUIP.map(c=>
+    `<div class="campo-form" ${c.larg ? 'style="grid-column:span ' + c.larg + '"' : ''}>
+      <label for="f-${c.k}">${esc(c.r)}${c.req ? ' *' : ''}</label>
+      <input id="f-${c.k}" data-f="${c.k}" value="${esc(d[c.k])}"
+             ${c.req ? 'required' : ''} autocomplete="off">
+      ${c.dica ? `<span class="dica">${esc(c.dica)}</span>` : ''}
+    </div>`).join('');
+
+  const linhas = d.transdutores.map((tr,i)=>`
+    <div class="bloco-transd" data-i="${i}">
+      <div class="cabeca">
+        <span class="slot">T${i+1}</span>
+        <span class="nome">${esc(tr.modelo) || 'Transdutor sem modelo informado'}</span>
+        <button class="tirar" data-tirar="${i}" title="Remover transdutor"
+                aria-label="Remover transdutor T${i+1}"
+                ${d.transdutores.length === 1 ? 'disabled' : ''}>×</button>
+      </div>
+      <div class="form-grid">
+        <div class="campo-form"><label>Tipo</label>
+          <select data-t="tipo">${TIPOS_TRANSD.map(x=>
+            `<option${x === tr.tipo ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+        ${CAMPOS_TRANSD.map(c=>
+          `<div class="campo-form"><label>${esc(c.r)}</label>
+            <input data-t="${c.k}" value="${esc(tr[c.k])}"
+                   ${c.dica ? `placeholder="${esc(c.dica)}"` : ''} autocomplete="off"></div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const faltando = CAMPOS_EQUIP.filter(c => c.req && !String(d[c.k]).trim()).map(c => c.r);
+  const duplicado = PARQUE.some(e => e.id.toLowerCase() === d.id.trim().toLowerCase());
+
+  topo({voltar:'parque', titulo:'Novo equipamento', sub:hospAtual().nome});
+
+  el('vista').innerHTML = `
+    <p class="sub" style="margin:14px 0 4px">Os treze testes da IN nº 96 são criados
+      automaticamente para cada transdutor informado.</p>
+
+    <p class="rotulo">Identificação</p>
+    <div class="card pad">
+      <div class="form-grid">${campos}</div>
+    </div>
+
+    <p class="rotulo">Transdutores</p>
+    <div class="card pad">
+      ${linhas}
+      <button class="bt mini" id="btMais" style="margin-top:14px">+ Adicionar transdutor</button>
+      <p class="base-nota">O slot é atribuído na ordem — é ele que amarra o transdutor à sua
+      aba de resultados. O número de série é a chave da linha de base: acompanha o hardware
+      mesmo que o patrimônio seja reetiquetado.</p>
+    </div>
+
+    ${faltando.length
+      ? `<p class="sub" style="margin-top:16px; color:var(--warn)">
+           Falta preencher: ${esc(faltando.join(', '))}.</p>`
+      : duplicado
+      ? `<p class="sub" style="margin-top:16px; color:var(--warn)">
+           Já existe um equipamento com o código <span class="mono">${esc(d.id)}</span>.</p>`
+      : ''}
+
+    ${acaoFixa(`
+      <button class="bt" id="btCancelar">Cancelar</button>
+      <button class="bt principal" id="btSalvar"
+              ${faltando.length || duplicado ? 'disabled' : ''}>Cadastrar e iniciar</button>`)}`;
+
+  /* Os campos gravam no rascunho sem redesenhar a tela, para não perder o
+     cursor a cada tecla. Só a validação do rodapé é recalculada. */
+  document.querySelectorAll('[data-f]').forEach(inp =>
+    inp.addEventListener('input', ()=>{ d[inp.dataset.f] = inp.value; validarCadastro(); }));
+
+  document.querySelectorAll('.bloco-transd').forEach(bloco =>
+    bloco.querySelectorAll('[data-t]').forEach(inp =>
+      inp.addEventListener('input', ()=>{
+        d.transdutores[+bloco.dataset.i][inp.dataset.t] = inp.value;
+      })));
+
+  document.querySelectorAll('[data-tirar]').forEach(b =>
+    b.addEventListener('click', ()=>{ d.transdutores.splice(+b.dataset.tirar, 1); render(); }));
+
+  el('btMais').addEventListener('click', ()=>{ d.transdutores.push(transdutorNovo()); render(); });
+  el('btCancelar').addEventListener('click', ()=> ir('parque', {rascunho:null}));
+  el('btSalvar').addEventListener('click', salvarCadastro);
+}
+
+function validarCadastro(){
+  const d = ESTADO.rascunho;
+  const falta = CAMPOS_EQUIP.some(c => c.req && !String(d[c.k]).trim());
+  const dup = PARQUE.some(e => e.id.toLowerCase() === d.id.trim().toLowerCase());
+  el('btSalvar').disabled = falta || dup;
+}
+
+function salvarCadastro(){
+  const d = ESTADO.rascunho;
+  const eq = {
+    id:d.id.trim(), relatorio:'', periodicidade:d.periodicidade,
+    visita:hoje(), validade:'',
+    hosp:ESTADO.hosp, unidade:d.unidade.trim(),
+    marca:d.marca.trim(), modelo:d.modelo.trim(), ns:d.ns.trim(),
+    patrimonio:d.patrimonio.trim(), setor:d.setor.trim(), sala:d.sala.trim(),
+    semHistorico:true,            /* nasce sem acervo: tudo sai como ELB */
+    transdutores:d.transdutores.map((tr,i)=>({
+      slot:'T' + (i+1), tipo:tr.tipo,
+      modelo:tr.modelo.trim() || '—', ns:tr.ns.trim() || '—', cod:tr.cod.trim() || '—',
+      fmax:num(tr.fmax),
+      tec:{protocolo:tr.protocolo.trim() || '—', potencia:'—', ad:'—', profmax:'—',
+           rejeicao:'—', graymap:'—', bandafocal:'—', densidade:'—'}
+    })),
+    medidas:{}
+  };
+  PARQUE.push(eq);
+  ir('equip', {equip:eq.id, rascunho:null, busca:''});
+}
+
+function hoje(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear();
+}
+
+/* ==========================================================================
+   9. Equipamento — transdutores
+   ========================================================================== */
+
+function telaEquip(){
+  const eq = equipAtual();
+  const r = resumoEquip(eq);
+  const cheio = temMedidas(eq), vazios = transdVazios(eq);
+  const vist = contarVistoria(eq);
+
+  const cartoes = eq.transdutores.map(tr=>{
+    const rt = resumoTransd(eq, tr);
+    const feitos = rt.total - rt.contagem.pend;
+    const pct = Math.round((feitos / rt.total) * 100);
+    return `<div class="equip-linha">
+      <button class="equip anima" data-slot="${tr.slot}">
+        <div class="l1">
+          <span class="cod">${esc(tr.modelo)}</span>
+          <span class="chip c-${rt.situacao}">${ROTULOS[rt.situacao]}</span>
+          <span class="sub mono">${esc(tr.slot)}</span>
+        </div>
+        <div class="cli">${esc(tr.tipo)} · N/S ${esc(tr.ns)} · ${esc(tr.cod)} ·
+          ${esc(tr.tec.protocolo)}</div>
+        <div class="l3">
+          <span class="progresso"><i style="width:${pct}%"></i></span>
+          <span class="pct mono">${feitos}/${rt.total} medidos</span>
+        </div>
+      </button>
+      <button class="apagar-t" data-apagar="${esc(tr.slot)}"
+              title="Remover transdutor ${esc(tr.slot)}"
+              aria-label="Remover o transdutor ${esc(tr.slot)}, ${esc(tr.modelo)}">×</button>
+    </div>`;
+  }).join('');
+
+  topo({voltar:'parque', titulo:eq.marca + ' ' + eq.modelo,
+        sub:eq.id + ' · N/S ' + eq.ns});
+
+  el('vista').innerHTML = `
+    <p class="sub" style="margin:14px 0 4px">${esc(eq.unidade) || '—'} ·
+      ${esc(eq.sala) || '—'}${eq.visita ? ' · visita de ' + esc(eq.visita) : ''}</p>
+
+    ${eq.semHistorico ? `<p class="sub" style="margin-top:12px; max-width:66ch">
+      Equipamento recém-cadastrado: não há visita anterior, então todos os testes de
+      linha de base sairão como <span class="mono">ELB</span> neste primeiro relatório.
+      Os de critério fixo já saem avaliados.</p>`
+    : temMedidas(eq) ? chaveHistorico()
+    : `<p class="sub" style="margin-top:12px; max-width:66ch">
+      Visita em branco: os treze testes de cada transdutor estão criados e esperando
+      medida. Abra qualquer um e digite, ou use o botão de exemplo no rodapé.</p>`}
+
+    <p class="rotulo">Vistoria</p>
+    <button class="teste" id="btVistoria">
+      <span class="chip c-${vist.pend === INSPECAO_EQUIP.length ? 'pend'
+                          : vist.nconf ? 'nconf' : vist.pend ? 'pend' : 'conf'}">${
+        vist.pend === INSPECAO_EQUIP.length ? 'não iniciada'
+        : vist.nconf ? vist.nconf + ' não conforme(s)'
+        : vist.pend ? 'em andamento' : 'conforme'}</span>
+      <span class="corpo">
+        <span class="nome">Console, monitor, transdutores e documentação</span>
+        <span class="meta">${INSPECAO_EQUIP.length} itens · abre a visita · não é teste do Anexo I</span>
+      </span>
+      <span class="valor">${vist.conf + vist.nconf}/${INSPECAO_EQUIP.length}</span>
+    </button>
+
+    <p class="rotulo">Situação da visita</p>
+    <div class="resumo">
+      <div class="res-item"><div class="n mono" style="color:var(--ok)">${r.geral.conf}</div><div class="r">conformes</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--warn)">${r.geral.nconf}</div><div class="r">não conformes</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--info)">${r.geral.elb}</div><div class="r">ELB</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--neutro)">${r.geral.na}</div><div class="r">não aplicáveis</div></div>
+      <div class="res-item"><div class="n mono">${r.geral.pend}</div><div class="r">pendentes</div></div>
+    </div>
+
+    <p class="rotulo">Transdutores</p>
+    <div class="lista">
+      ${cartoes || '<p class="vazio-msg">Este equipamento ainda não tem transdutor cadastrado.</p>'}
+      ${botaoNovo('btNovoT', 'Adicionar transdutor',
+                  'Entra como ' + proximoSlot(eq) + ', com os treze testes prontos')}
+    </div>
+
+    ${acaoFixa(`
+      ${cheio
+        ? '<button class="bt" id="btLimparEq">Limpar medidas</button>'
+        : ''}
+      ${eq.transdutores.length
+        ? `<button class="bt" id="btDemoEq">${
+             !cheio ? 'Gerar demonstração' : vazios.length ? 'Completar medidas' : 'Regerar medidas'}</button>`
+        : ''}
+      <button class="bt principal" id="btRel">Ver o relatório</button>`)}`;
+
+  ligarChave();
+  document.querySelectorAll('.equip').forEach(b =>
+    b.addEventListener('click', ()=> ir('transd', {slot:b.dataset.slot})));
+  el('btNovoT').addEventListener('click', ()=> ir('cadTransd', {rascunho:null}));
+  el('btRel').addEventListener('click', ()=> ir('relatorio'));
+  el('btVistoria').addEventListener('click', ()=> ir('vistoria'));
+
+  /* Remover é do cadastro: leva junto as medidas daquele slot, e só as dele. */
+  document.querySelectorAll('[data-apagar]').forEach(b =>
+    b.addEventListener('click', ()=>{
+      const slot = b.dataset.apagar;
+      const tr = eq.transdutores.find(x => x.slot === slot);
+      if (!tr) return;
+      if (confirm('Remover o transdutor ' + slot + ' — ' + tr.modelo +
+                  '? As medidas coletadas nele também são apagadas.')){
+        eq.transdutores = eq.transdutores.filter(x => x.slot !== slot);
+        limparTransd(eq, slot);
+        render();
+      }
+    }));
+
+  const bDemo = el('btDemoEq'), bLimpa = el('btLimparEq');
+  /* Com a visita já preenchida, o botão só cobre quem ficou para trás — um
+     transdutor cadastrado depois da geração. Sem nada preenchido, gera tudo. */
+  if (bDemo) bDemo.addEventListener('click', ()=>{
+    if (cheio && vazios.length) vazios.forEach(tr => gerarDemo(eq, tr.slot));
+    else gerarDemo(eq);
+    render();
+  });
+  if (bLimpa) bLimpa.addEventListener('click', ()=>{
+    if (confirm('Apagar as medidas deste equipamento? O cadastro não é afetado.')){
+      limparMedidas(eq); render();
+    }
+  });
+}
+
+/* --- cadastro de transdutor num equipamento já existente ----------------- */
+function telaCadTransd(){
+  const eq = equipAtual();
+  const d = ESTADO.rascunho = ESTADO.rascunho || transdutorNovo();
+  const slot = proximoSlot(eq);
+  const falta = !d.modelo.trim();
+
+  topo({voltar:'equip', titulo:'Adicionar transdutor',
+        sub:'Entra como ' + slot + ' em ' + eq.marca + ' ' + eq.modelo});
+
+  el('vista').innerHTML = `
+    <div style="height:14px"></div>
+
+    <div class="card pad">
+      <div class="form-grid">
+        <div class="campo-form"><label>Tipo</label>
+          <select data-t="tipo">${TIPOS_TRANSD.map(x=>
+            `<option${x === d.tipo ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+        ${CAMPOS_TRANSD.map(c=>
+          `<div class="campo-form">
+            <label for="t-${c.k}">${esc(c.r)}${c.k === 'modelo' ? ' *' : ''}</label>
+            <input id="t-${c.k}" data-t="${c.k}" value="${esc(d[c.k])}"
+                   ${c.dica ? `placeholder="${esc(c.dica)}"` : ''} autocomplete="off">
+          </div>`).join('')}
+      </div>
+      <p class="base-nota">O número de série é a chave da linha de base: acompanha o
+      hardware mesmo que o patrimônio seja reetiquetado. A frequência máxima define o
+      limite de resolução aplicado pela IN nº 96.</p>
+    </div>
+
+    ${falta ? `<p class="sub" style="margin-top:16px; color:var(--warn)">
+      Informe ao menos o modelo do transdutor.</p>` : ''}
+
+    ${acaoFixa(`
+      <button class="bt" id="btCancelar">Cancelar</button>
+      <button class="bt principal" id="btSalvarT" ${falta ? 'disabled' : ''}>
+        Adicionar ${slot}</button>`)}`;
+
+  document.querySelectorAll('[data-t]').forEach(inp =>
+    inp.addEventListener('input', ()=>{
+      d[inp.dataset.t] = inp.value;
+      el('btSalvarT').disabled = !d.modelo.trim();
+    }));
+
+  el('btCancelar').addEventListener('click', ()=> ir('equip', {rascunho:null}));
+  el('btSalvarT').addEventListener('click', ()=>{
+    eq.transdutores.push({
+      slot, tipo:d.tipo,
+      modelo:d.modelo.trim(), ns:d.ns.trim() || '—', cod:d.cod.trim() || '—',
+      fmax:num(d.fmax),
+      tec:{protocolo:d.protocolo.trim() || '—', potencia:'—', ad:'—', profmax:'—',
+           rejeicao:'—', graymap:'—', bandafocal:'—', densidade:'—'}
+    });
+    ir('transd', {slot, rascunho:null});
+  });
+}
+
+/* ==========================================================================
+   10. Transdutor — roteiro dos testes
+   ========================================================================== */
+
+function telaTransd(){
+  const eq = equipAtual(), tr = transdAtual();
+  const r = resumoTransd(eq, tr);
+  const t9 = tr.tec;
+
+  const grupos = GRUPOS.map(g=>{
+    const lista = testesDe(tr.slot).filter(t => t.grupo === g.id);
+    if (!lista.length) return '';
+    const itens = lista.map(t=>{
+      const a = avaliar(t, eq, tr);
+      return `<button class="teste" data-t="${t.id}">
+        <span class="chip c-${a.situacao}">${ROTULOS[a.situacao]}</span>
+        <span class="corpo">
+          <span class="nome">${esc(t.nome)}</span>
+          <span class="meta">${t.base ? 'linha de base' : 'critério fixo'}</span>
+        </span>
+        <span class="valor">${esc(a.texto)}<small>tol. ${esc(tolDe(t, tr))}</small></span>
+      </button>`;
+    }).join('');
+    return `<div class="grupo-tit"><h2>${esc(g.nome)}</h2><span>${lista.length}</span></div>
+            <div class="teste-lista">${itens}</div>`;
+  }).join('');
+
+  topo({voltar:'equip', titulo:tr.modelo + ' · ' + tr.tipo,
+        sub:'Slot ' + tr.slot + ' · N/S ' + tr.ns + ' · ' + tr.cod});
+
+  el('vista').innerHTML = `
+    <div style="height:12px"></div>
+
+    ${podeHistorico(eq) ? chaveHistorico() : ''}
+
+    <p class="rotulo">Técnica do protocolo — vale para todos os testes deste transdutor</p>
+    <div class="card pad">
+      <div class="tecnica">
+        <div><span>Protocolo</span><b>${esc(t9.protocolo)}</b></div>
+        <div><span>Potência</span><b class="mono">${esc(t9.potencia)}</b></div>
+        <div><span>Alcance dinâmico</span><b class="mono">${esc(t9.ad)}</b></div>
+        <div><span>Profundidade máx.</span><b class="mono">${esc(t9.profmax)}</b></div>
+        <div><span>Rejeição</span><b class="mono">${esc(t9.rejeicao)}</b></div>
+        <div><span>Mapa de cinzas</span><b class="mono">${esc(t9.graymap)}</b></div>
+        <div><span>Banda focal</span><b class="mono">${esc(t9.bandafocal)}</b></div>
+        <div><span>Densidade de linha</span><b class="mono">${esc(t9.densidade)}</b></div>
+      </div>
+      <p class="base-nota" style="margin-top:13px">
+        Estes oito campos mais o ganho, foco, frequência e profundidade de cada teste
+        formam a chave da técnica. Duas medidas só se comparam se a técnica for
+        reproduzida — mudou a técnica, é outra linha de base.
+      </p>
+    </div>
+
+    <p class="rotulo">Situação</p>
+    <div class="resumo">
+      <div class="res-item"><div class="n mono" style="color:var(--ok)">${r.contagem.conf}</div><div class="r">conformes</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--warn)">${r.contagem.nconf}</div><div class="r">não conformes</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--info)">${r.contagem.elb}</div><div class="r">ELB</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--neutro)">${r.contagem.na}</div><div class="r">não aplicáveis</div></div>
+      <div class="res-item"><div class="n mono">${r.contagem.pend}</div><div class="r">pendentes</div></div>
+    </div>
+
+    ${grupos}
+
+    ${acaoFixa(temMedidasTransd(eq, tr.slot)
+      ? `<button class="bt" id="btLimparT">Limpar medidas</button>
+         <button class="bt" id="btDemoT">Regerar medidas</button>`
+      : `<button class="bt principal" id="btDemoT">Preencher as medidas de ${esc(tr.slot)}</button>`)}`;
+
+  ligarChave();
+  /* Só os cartões que carregam um teste: a classe `.teste` é o desenho do
+     cartão, e o da vistoria a reaproveita. */
+  document.querySelectorAll('.teste[data-t]').forEach(b =>
+    b.addEventListener('click', ()=> ir('teste', {teste:b.dataset.t})));
+
+  /* Preenchimento por transdutor: entra só nos treze testes deste slot, sem
+     tocar no resto da visita. */
+  el('btDemoT').addEventListener('click', ()=>{ gerarDemo(eq, tr.slot); render(); });
+  const bLimpaT = el('btLimparT');
+  if (bLimpaT) bLimpaT.addEventListener('click', ()=>{
+    if (confirm('Apagar as medidas de ' + tr.slot + '? O cadastro do transdutor não é afetado.')){
+      limparTransd(eq, tr.slot); render();
+    }
+  });
+}
+
+/* ==========================================================================
+   11. Coleta de um teste
+   ========================================================================== */
+
+function painelBase(t, eq, tr, linha, col, valor, rotulo){
+  const reg = eq.medidas[tr.slot][t.id];
+  if (reg.marca === 'elb'){
+    return `<div class="base-painel sem">
+      <div>
+        <h3>Linha de base</h3>
+        <div class="base-nums"><div><span>Referência</span><b>descartada</b></div></div>
+        <p class="base-nota">Marcado como <b>estabelecendo nova linha de base</b>. O
+        histórico anterior deixa de valer para esta combinação, e a medida desta visita
+        passa a ser a referência. O relatório sai com <span class="mono">ELB</span> nesta
+        linha.${reg.marcaObs ? ' Justificativa: <i>' + esc(reg.marcaObs) + '</i>' : ''}</p>
+      </div></div>`;
+  }
+  const r = contraBase(t, eq, tr.slot, linha, col, valor);
+  if (!r){
+    return `<div class="base-painel sem">
+      <div>
+        <h3>Linha de base</h3>
+        <div class="base-nums"><div><span>Referência</span><b>—</b></div></div>
+        <p class="base-nota">Primeira medida desta combinação de equipamento, transdutor,
+        protocolo e técnica. Sem referência, o relatório sai com
+        <span class="mono">ELB</span> — <em>estabelecendo linha de base</em> — e a avaliação
+        fica para a próxima visita.</p>
+      </div></div>`;
+  }
+  const exato = t.tolBase === 'exato';
+  const cor = r.situacao === 'conf' ? 'var(--ok)' : 'var(--warn)';
+  return `<div class="base-painel">
+    <div>
+      <h3>Linha de base${rotulo ? ' · ' + esc(rotulo) : ''}</h3>
+      <div class="base-nums">
+        <div><span>Referência (${r.serie.length} visitas)</span><b>${fmt(r.ref)}${t.un ? ' ' + t.un : ''}</b></div>
+        <div><span>Esta visita</span><b>${fmt(valor)}${t.un ? ' ' + t.un : ''}</b></div>
+        <div><span>${exato ? 'Diferença' : (t.tolAbs ? 'Desvio' : 'Variação')}</span>
+             <b style="color:${cor}">${
+               exato    ? fmt(r.delta, 0)
+             : t.tolAbs ? (r.delta > 0 ? '+' : '') + fmt(r.delta) + (t.un ? ' ' + t.un : '')
+                        : pctTxt(r.pct)}</b></div>
+        <div><span>Avaliação</span><b><span class="chip c-${r.situacao}">${ROTULOS[r.situacao]}</span></b></div>
+      </div>
+      <p class="base-nota">Tolerância aplicada: ${esc(tolDe(t, tr))}.
+        A caixa <b>Tolerância IN&nbsp;-&nbsp;96</b> do relatório traz o texto da norma:
+        <i>${esc(t.tolIN)}</i></p>
+    </div>
+    <div>${sparkline(r, valor)}</div>
+  </div>`;
+}
+
+/* --- as duas marcações manuais que o técnico pode dar a um teste --------- */
+const MARCAS = {
+  elb:{
+    rot:'Estabelecendo nova linha de base',
+    expl:`A medida desta visita passa a ser a referência, e o histórico anterior desta
+      combinação deixa de valer. Use após troca de transdutor, manutenção corretiva ou
+      mudança deliberada de técnica. O relatório sai com ELB nestas linhas.`
+  },
+  na:{
+    rot:'Não aplicável',
+    expl:`O teste não se aplica a este transdutor, ou não pôde ser realizado nesta visita.
+      Sai do relatório como Não aplicável, com a justificativa, e não entra na contagem de
+      pendências nem de não conformidades.`
+  }
+};
+
+function blocoMarcas(reg){
+  const m = reg.marca;
+  const botoes = Object.keys(MARCAS).map(k=>
+    `<button class="marca-bt" data-m="${k}" data-s="${k}" aria-pressed="${m === k}">
+      ${esc(MARCAS[k].rot)}</button>`).join('');
+
+  return `<div class="marcas">${botoes}</div>
+    ${m ? `<div class="marca-ativa m-${m}">
+      <b>${esc(MARCAS[m].rot)}</b>
+      <p>${esc(MARCAS[m].expl.replace(/\s+/g,' ').trim())}</p>
+      <input class="txt" id="cMarcaObs" value="${esc(reg.marcaObs)}" autocomplete="off"
+             placeholder="Justificativa — sai na coluna Observações do relatório">
+    </div>` : ''}`;
+}
+
+function telaTeste(){
+  const eq = equipAtual(), tr = transdAtual();
+  const t = POR_ID[ESTADO.teste];
+  const reg = registro(eq, tr.slot, t.id);
+  const a = avaliar(t, eq, tr);
+
+  let corpo = '';
+
+  if (t.tipo === 'qualit'){
+    corpo = `<div class="opcoes">${t.opcoes.map(([rot,s])=>
+      `<button class="opcao" data-res="${esc(rot)}" data-s="${s}" aria-pressed="${reg.res === rot}">${esc(rot)}
+        <small>${s === 'conf' ? 'atende ao critério da IN-96' : 'registrar a descrição do artefato'}</small>
+      </button>`).join('')}</div>
+      <p class="rotulo" style="margin-top:4px">Descrição do artefato</p>
+      <textarea class="obs" id="cObs" placeholder="Descreva o artefato observado">${esc(reg.obs)}</textarea>`;
+  }
+
+  else if (t.tipo === 'escalar'){
+    corpo = `<div class="campos-num">${t.campos.map(c=>
+      `<div class="campo-num${c.ctx ? ' ctx' : ''}">
+        <label for="c-${c.k}">${esc(c.r)}${c.ctx ? ' · contexto' : ''}</label>
+        <div class="linha">
+          <input id="c-${c.k}" class="mono" data-k="${c.k}" inputmode="decimal"
+                 placeholder="—" value="${val(reg[c.k])}">
+          <span class="un">${esc(c.un)}</span>
+        </div>
+      </div>`).join('')}</div>`;
+    if (t.deriv && !t.campos.some(c => nada(reg[c.k]))){
+      const d = t.deriv(reg);
+      corpo += `<div class="base-nums" style="margin:14px 2px 0">
+        <div><span>${esc(d.r)}</span><b>${fmt(d.v)} ${esc(d.un)}</b></div>
+        <div><span>Avaliação</span><b><span class="chip c-${a.situacao}">${ROTULOS[a.situacao]}</span></b></div>
+      </div>`;
+    }
+    if (t.base) corpo += painelBase(t, eq, tr, undefined, t.metrica, reg[t.metrica]);
+  }
+
+  else if (t.tipo === 'booleana'){
+    const linhas = t.linhas.map(l=>{
+      const v = reg.linhas[l];
+      const cels = t.cols.map(c=>{
+        const s = serie(eq, tr.slot, t.id, l, c.k);
+        const mudou = ESTADO.historico && s && s.every(p => p.v === 1) && v[c.k] === 0;
+        return `<td><span class="sn">
+          <button data-l="${esc(l)}" data-c="${c.k}" data-v="1" aria-pressed="${v[c.k] === 1}">Sim</button>
+          <button data-l="${esc(l)}" data-c="${c.k}" data-v="0" aria-pressed="${v[c.k] === 0}">Não</button>
+        </span>${mudou ? '<div class="sub" style="color:var(--warn); margin-top:3px">era Sim nas 3 visitas</div>' : ''}</td>`;
+      }).join('');
+      return `<tr><td class="mono">${esc(l)}</td>${cels}</tr>`;
+    }).join('');
+    corpo = `<div class="tab-scroll"><table>
+      <thead><tr><th>${esc(t.indice)}</th>${t.cols.map(c=>`<th>${esc(c.r)}</th>`).join('')}</tr></thead>
+      <tbody>${linhas}</tbody></table></div>
+      <p class="base-nota" style="margin-top:12px">${ESTADO.historico
+        ? 'Cada célula é comparada com o que se via nas visitas anteriores. O aviso aparece quando um alvo que sempre foi visto deixa de ser.'
+        : 'Sem histórico não há o que comparar: as seis linhas saem como <span class="mono">ELB</span> no relatório.'}</p>`;
+  }
+
+  else {
+    const linhas = linhasDe(t, reg);
+    const corpoTab = linhas.map(l=>{
+      const v = reg.linhas[l];
+      const cels = t.cols.map(c=>
+        `<td class="num"><input class="cel" data-l="${esc(l)}" data-c="${c.k}"
+           inputmode="decimal" placeholder="—" value="${val(v[c.k])}"></td>`).join('');
+      const completa = t.cols.every(c => !nada(v[c.k]));
+      let sit = 'pend', ref = '';
+      if (completa){
+        const r = t.aval ? {situacao:t.aval(v, tr)} : contraBase(t, eq, tr.slot, l, t.metrica, v[t.metrica]);
+        sit = r ? r.situacao : 'elb';
+        if (r && r.ref !== undefined)
+          ref = `<div class="sub mono" style="margin-top:3px">ref. ${fmt(r.ref)}${
+            r.pct === null ? '' : ' · ' + pctTxt(r.pct)}</div>`;
+      }
+      return `<tr><td class="mono">${esc(l)}</td>${cels}
+        <td><span class="chip c-${sit}">${ROTULOS[sit]}</span>${ref}</td></tr>`;
+    }).join('');
+    corpo = `<div class="tab-scroll"><table>
+      <thead><tr><th>${esc(t.indice)}</th>${t.cols.map(c=>
+        `<th class="num">${esc(c.r)}${c.un ? ' (' + esc(c.un) + ')' : ''}</th>`).join('')}
+        <th>Avaliação</th></tr></thead>
+      <tbody>${corpoTab}</tbody></table></div>`;
+
+    if (t.base && !t.aval){
+      const l0 = linhas[0];
+      corpo += painelBase(t, eq, tr, l0, t.metrica, reg.linhas[l0][t.metrica], t.indice + ' ' + l0);
+    }
+    if (t.aval){
+      corpo += `<p class="base-nota" style="margin-top:12px">Critério fixo:
+        ${esc(tolDe(t, tr))}. Não depende de histórico — a avaliação sai já na primeira
+        visita. Texto da norma: <i>${esc(t.tolIN)}</i></p>`;
+    }
+  }
+
+  topo({voltar:'transd', titulo:t.num + '. ' + t.nome,
+        sub:tr.modelo + ' · ' + tr.tec.protocolo});
+
+  el('vista').innerHTML = `
+    <p class="sub" style="margin:14px 0 2px">Tolerância: ${esc(tolDe(t, tr))}</p>
+
+    ${blocoMarcas(reg)}
+
+    ${t.semAq || reg.marca === 'na' ? '' : `<p class="rotulo">Parâmetros de aquisição deste teste</p>
+    <div class="aquis">${['Gn','Fc','Fr','Pr'].map(k=>
+      `<div class="aq"><span>${k}</span>
+        <input class="mono" data-aq="${k}" value="${esc(reg.acq[k])}" placeholder="—"></div>`).join('')}</div>`}
+
+    ${reg.marca === 'na' ? '' : corpo}
+
+    <p class="rotulo">Demonstração</p>
+    <div class="card pad">
+      <div class="rodape-acoes" style="margin:0">
+        <button class="bt mini" id="btGerarTeste">Gerar medidas de exemplo</button>
+        ${regPreenchido(reg) ? '<button class="bt mini" id="btLimparTeste">Limpar este teste</button>' : ''}
+      </div>
+      <p class="base-nota" style="margin:11px 0 0">Preenche só este teste, com os parâmetros
+      de aquisição e as medidas do acervo — ou, para um transdutor cadastrado agora, com
+      valores gerados para a sua frequência.</p>
+    </div>
+
+    ${podeHistorico(eq) ? chaveHistorico() : ''}
+
+    ${acaoFixa(`
+      <button class="bt" id="btVoltar2">Roteiro</button>
+      <button class="bt principal" id="btRel">Ver no relatório</button>`)}`;
+
+  /* Toda escrita grava no registro e redesenha, para que avaliação, painel de
+     linha de base e minigráfico acompanhem a digitação. */
+  const guardar = () => { render(); };
+
+  document.querySelectorAll('.marca-bt').forEach(b =>
+    b.addEventListener('click', ()=>{
+      reg.marca = reg.marca === b.dataset.m ? null : b.dataset.m;
+      if (!reg.marca) reg.marcaObs = '';
+      guardar();
+    }));
+  const obsM = el('cMarcaObs');
+  if (obsM) obsM.addEventListener('change', ()=>{ reg.marcaObs = obsM.value; });
+
+  document.querySelectorAll('[data-aq]').forEach(inp =>
+    inp.addEventListener('change', ()=>{ reg.acq[inp.dataset.aq] = inp.value; }));
+
+  document.querySelectorAll('.opcao').forEach(b =>
+    b.addEventListener('click', ()=>{ reg.res = b.dataset.res; guardar(); }));
+  const obs = el('cObs');
+  if (obs) obs.addEventListener('change', ()=>{ reg.obs = obs.value; });
+
+  document.querySelectorAll('.campo-num input[data-k]').forEach(inp =>
+    inp.addEventListener('change', ()=>{ reg[inp.dataset.k] = num(inp.value); guardar(); }));
+
+  document.querySelectorAll('input.cel').forEach(inp =>
+    inp.addEventListener('change', ()=>{
+      reg.linhas[inp.dataset.l][inp.dataset.c] = num(inp.value); guardar();
+    }));
+
+  document.querySelectorAll('.sn button').forEach(b =>
+    b.addEventListener('click', ()=>{
+      reg.linhas[b.dataset.l][b.dataset.c] = +b.dataset.v; guardar();
+    }));
+
+  el('btGerarTeste').addEventListener('click', ()=>{
+    gerarDemoTeste(eq, tr, t.id); render();
+  });
+  const btLimpaT = el('btLimparTeste');
+  if (btLimpaT) btLimpaT.addEventListener('click', ()=>{
+    limparTeste(eq, tr.slot, t.id); render();
+  });
+
+  ligarChave();
+  el('btVoltar2').addEventListener('click', ()=> ir('transd'));
+  el('btRel').addEventListener('click', ()=> ir('relatorio'));
+}
+
+/* ==========================================================================
+   12. Relatório
+   Mesma estrutura, mesma ordem de seções e mesmos textos normativos do
+   relatório de campo consagrado — capa, cadastro, objetivo, introdução,
+   descrição dos testes com as caixas de tolerância da IN-96, referências,
+   equipamento utilizado, definição dos parâmetros, identificação dos
+   transdutores, inspeção geral, resultados e conclusão.
+
+   A única diferença de conteúdo está nas colunas de avaliação: onde hoje se
+   digita ELB, entra a linha de base calculada.
+   ========================================================================== */
+
+/* Quem assina o relatório. São os únicos campos de identidade do documento:
+   preencher aqui e a capa, o cabeçalho de folha e o bloco de assinaturas
+   passam a sair com os dados do serviço que emite o laudo. */
+const EMISSOR = {
+  razao:'[Razão social do serviço de física médica]',
+  endereco:'[Endereço · cidade/UF · CEP]',
+  contato:'[Telefone · e-mail · site]'
+};
+
+const NORMA = {
+  objetivo:`Os testes realizados fazem parte de um programa de garantia de qualidade que
+    busca verificar se o equipamento identificado acima está em conformidade com as
+    exigências da RDC 611 de 09/03/2022, Instrução Normativa n°96 (27/05/2021).`,
+
+  introducao:[
+    `Em atendimento as recomendações da Instrução Normativa – IN Nº 96 - ANVISA que dispõe
+     sobre requisitos sanitários para a garantia da qualidade e da segurança em sistemas de
+     ultrassom diagnóstico ou intervencionista, a partir de janeiro de 2022, foram incluídas
+     as avaliações tanto no modo B como no modo Doppler.`,
+    `Para tanto, está sendo utilizado o simulador AST539 da empresa ATS Laboratories – CIRS
+     Company para os testes do modo B e o 1430 LE Mini-Doppler Flow Systems fabricado pela
+     empresa Gammex para os testes de doppler. O simulador 1430 consiste em um mimetizador
+     de tecido e um sistema de fluxo e possui dispositivos de teste para medidas tanto no
+     modo B como no modo Doppler. Para simulação do fluxo sanguíneo, o simulador possui um
+     tubo com 4,0 mm de diâmetro com controlador de fluxo, podendo produzir vazões de
+     1,0 m/s a 10,0 m/s com precisão de 1,5 %.`,
+    `Os testes são realizados com protocolos clínicos, desligando harmônicos e
+     compensações, utilizando foco único e TGC em 50%. As linhas de base para os
+     parâmetros avaliados serão estabelecidas.`
+  ],
+
+  referencias:[
+    'RDC 611 da ANVISA (09/03/2022) e instrução normativa No. 96 (27/05/2021);',
+    'Protocolo Español de Control de Calidad em Radiodiagnóstico, revisión 2011;',
+    'Manual do objeto simulador, Phantom 1430 LE Mini-Doppler Flow Systems – Gammex;',
+    'Manual do objeto simulador, Phantom ATS Model 539, nov. 2016.',
+    `IEC TS 62736:2023, Ultrasonics - Pulse-echo scanners - Simple methods for periodic
+     testing to verify stability of an imaging system's elementary performance.`,
+    'AAPM Report N°. 065, Real-Time B-Mode Ultrasound Quality Control Test Procedures, out 1998'
+  ],
+
+  simuladores:[
+    'Phantom 539 – AST Laboratories – CIRS Company',
+    'Phantom 1430 LE Mini-Doppler Flow Systems - Gammex'
+  ],
+
+  definicoes:[
+    ['Conforme', `O equipamento encontra-se com os parâmetros do teste dentro dos níveis
+      de tolerância estabelecidos pela Resolução RDC 611 da ANVISA de 09 de março de 2022.`],
+    ['Não Conforme', `O equipamento encontra-se com os parâmetros do teste entre o nível
+      de tolerância e o nível de restrição, estabelecidos pela Resolução RDC 611 da ANVISA
+      de 09 de março de 2022, e deve passar por manutenção corretiva. A não conformidade
+      não suspende a utilização dos equipamentos.`],
+    ['ELB', `Estabelecendo linha de base. Não há medida anterior da mesma combinação de
+      equipamento, transdutor, protocolo e técnica com que comparar — seja porque é a
+      primeira medição, seja porque a referência anterior foi deliberadamente descartada
+      após troca de transdutor, manutenção corretiva ou mudança de técnica. O parâmetro
+      passa a ser avaliado a partir da próxima visita.`],
+    ['Não Aplicável', `O teste não se aplica ao transdutor avaliado, ou não pôde ser
+      realizado nesta visita. A justificativa consta na coluna de observações do teste
+      correspondente, e o parâmetro não entra na contagem de não conformidades.`]
+  ],
+
+  conclusaoBase:`As linhas de base para os parâmetros avaliados serão estabelecidas e os
+    resultados obtidos nas medidas futuras serão comparados com as linhas de base.`,
+
+  recomendacoes:[
+    `Não deixar os transdutores sujos de gel, pois podem causar danos na membrana,
+     prejudicando as imagens obtidas;`,
+    'Cabos torcidos causam aparecimento de artefatos na imagem.'
+  ],
+
+  assinaturas:[
+    ['Física especialista em radiodiagnóstico', ''],
+    ['Físico médico em radiodiagnóstico', '']
+  ],
+
+  icp:`Este documento é assinado digitalmente, tendo toda validade jurídica amparada pela
+    Medida Provisória 2.200-2. Sendo certificada pela AC SERPRO-Receita Federal do Brasil,
+    está vinculada à ICP-Brasil e atende às aplicações do Decreto 3.996 e pode ser
+    utilizada no âmbito da Administração Pública Federal. A validade das assinaturas podem
+    ser verificadas pelo site do Instituto Nacional de Tecnologia da Informação -
+    https://verificador.iti.gov.br`
+};
+
+const cabecaDoc = eq => {
+  const h = hospDe(eq), ano = (eq.visita || '').slice(-4) || new Date().getFullYear();
+  return `<div class="cabeca-doc">
+    <span class="marca" aria-hidden="true">${MARCA}</span>
+    <span class="l"><b>${esc(h.nome)}</b>Controle de qualidade ${esc(ano)} ·
+      ${eq.relatorio ? esc(eq.relatorio) + ' · ' : ''}${esc(eq.marca)} ${esc(eq.modelo)} ·
+      ${esc(eq.id)}</span>
+  </div>`;
+};
+
+/* --- um bloco de resultado, na numeração do relatório -------------------- */
+function blocoTeste(t, eq, tr, num){
+  const reg = eq.medidas[tr.slot] && eq.medidas[tr.slot][t.id];
+  const a = avaliar(t, eq, tr);
+  const chip = s => `<span class="chip c-${s}">${ROTULOS_DOC[s]}</span>`;
+  /* Marcado como nova linha de base: os valores continuam no relatório, mas a
+     avaliação de todas as linhas é ELB — não há referência válida com que
+     comparar, porque o histórico foi descartado de propósito. */
+  const elbForcado = reg && reg.marca === 'elb';
+  const sit = s => elbForcado ? 'elb' : s;
+  let tabela = '';
+
+  if (reg && reg.marca === 'na'){
+    tabela = `<table><thead><tr><th>Resultado</th><th>Avaliação</th><th>Observações</th></tr></thead>
+      <tbody><tr><td>Teste não aplicável a este transdutor.</td><td>${chip('na')}</td>
+      <td>${esc(reg.marcaObs) || '—'}</td></tr></tbody></table>`;
+  }
+  else if (!reg || a.situacao === 'pend'){
+    tabela = `<table><tbody><tr><td>Teste ainda não realizado.</td>
+      <td style="width:1%">${chip('pend')}</td></tr></tbody></table>`;
+  }
+  else if (t.tipo === 'qualit'){
+    tabela = `<table><thead><tr><th>Resultado</th><th>Avaliação</th><th>Observações</th></tr></thead>
+      <tbody><tr><td>${esc(reg.res)}</td><td>${chip(a.situacao)}</td>
+      <td>${esc(reg.obs) || '—'}</td></tr></tbody></table>`;
+  }
+  else if (t.tipo === 'escalar'){
+    const d = t.deriv ? t.deriv(reg) : null;
+    const r = t.base ? contraBase(t, eq, tr.slot, undefined, t.metrica, reg[t.metrica]) : null;
+    tabela = `<table>
+      <thead><tr>${t.campos.map(c=>`<th class="num">${esc(c.r)} (${esc(c.un)})</th>`).join('')}
+        ${d ? `<th class="num">${esc(d.r)} (${esc(d.un)})</th>` : ''}
+        ${t.base ? '<th class="num">Linha de base</th>' : ''}
+        <th>Avaliação</th></tr></thead>
+      <tbody><tr>${t.campos.map(c=>`<td class="num mono">${fmt(reg[c.k])}</td>`).join('')}
+        ${d ? `<td class="num mono">${fmt(d.v)}</td>` : ''}
+        ${t.base ? `<td class="num mono">${elbForcado || !r ? '—' : fmt(r.ref) + ' ' + t.un}</td>` : ''}
+        <td>${chip(a.situacao)}</td></tr></tbody></table>`;
+  }
+  else if (t.tipo === 'booleana'){
+    const linhas = t.linhas.map(l=>{
+      const v = reg.linhas[l];
+      let s0 = 'elb', nota = '';
+      if (ESTADO.historico && !elbForcado){
+        const mudou = t.cols.some(c=>{
+          const s = serie(eq, tr.slot, t.id, l, c.k);
+          return s && s.every(p => p.v === 1) && v[c.k] === 0;
+        });
+        s0 = mudou ? 'nconf' : 'conf';
+        if (mudou) nota = ' <span class="sub">(mudou)</span>';
+      }
+      return `<tr><td class="mono">${esc(l)}</td>
+        ${t.cols.map(c=>`<td>${v[c.k] ? 'Sim' : 'Não'}</td>`).join('')}
+        <td>${chip(sit(s0))}${nota}</td></tr>`;
+    }).join('');
+    tabela = `<table><thead><tr><th>${esc(t.indice)}</th>
+      ${t.cols.map(c=>`<th>${esc(c.r)}</th>`).join('')}<th>Avaliação</th></tr></thead>
+      <tbody>${linhas}</tbody></table>`;
+  }
+  else {
+    const linhas = linhasDe(t, reg).map(l=>{
+      const v = reg.linhas[l];
+      const r = t.aval ? {situacao:t.aval(v, tr)} : contraBase(t, eq, tr.slot, l, t.metrica, v[t.metrica]);
+      return `<tr><td class="mono">${esc(l)}</td>
+        ${t.cols.map(c=>`<td class="num mono">${fmt(v[c.k])}</td>`).join('')}
+        ${t.aval ? '' : `<td class="num mono">${elbForcado || !r ? '—' : fmt(r.ref)}</td>`}
+        <td>${chip(sit(r ? r.situacao : 'elb'))}</td></tr>`;
+    }).join('');
+    tabela = `<table><thead><tr><th>${esc(t.indice)}</th>
+      ${t.cols.map(c=>`<th class="num">${esc(c.r)}${c.un ? ' (' + esc(c.un) + ')' : ''}</th>`).join('')}
+      ${t.aval ? '' : '<th class="num">Linha de base</th>'}<th>Avaliação</th></tr></thead>
+      <tbody>${linhas}</tbody></table>`;
+  }
+
+  const aq = reg && !t.semAq && reg.marca !== 'na'
+    ? ['Gn','Fc','Fr','Pr'].filter(k => reg.acq[k]).map(k => k + ': ' + reg.acq[k]).join(' · ')
+    : '';
+
+  /* A justificativa da marcação vai logo abaixo da tabela — num relatório
+     regulatório, um ELB ou um NA sem motivo declarado é um buraco. */
+  const nota = elbForcado
+    ? '* Estabelecendo nova linha de base' + (reg.marcaObs ? ' — ' + reg.marcaObs : '')
+    : '';
+
+  /* Título, parâmetros de aquisição e tabela são uma coisa só: na impressão o
+     bloco inteiro passa para a folha seguinte em vez de partir no meio. */
+  return `<div class="bloco-res">
+    <h4><span class="num">${esc(num)}</span>${esc(t.nome)}</h4>
+    ${aq ? `<p class="aq-linha">Parâmetros de Aquisição — ${esc(aq)}</p>` : ''}
+    <div class="tab-scroll">${tabela}</div>
+    ${nota ? `<p class="nota-marca">${esc(nota)}</p>` : ''}
+  </div>`;
+}
+
+/* --- tabela de inspeção geral ------------------------------------------- */
+function tabelaInspecao(itens, valores, obs, grupos){
+  const linha = i=>{
+    const v = (valores || {})[i];
+    const o = ((obs || {})[i] || '').trim();
+    return `<tr><td>${esc(i)}</td>
+      <td style="width:1%">${v ? `<span class="chip c-${v === 'Conforme' ? 'conf' : 'nconf'}">${esc(v)}</span>`
+                               : '<span class="chip c-pend">Não inspecionado</span>'}</td>
+      <td style="width:22%">${esc(o) || '—'}</td></tr>`;
+  };
+  /* Com grupos, cada um abre uma linha de título — é como a vistoria é feita e
+     como o laudo fica legível. Sem grupos, a tabela sai corrida, que é o caso
+     da inspeção de transdutor, de dois itens. */
+  const linhas = grupos
+    ? grupos.map(g=>`<tr class="total"><td colspan="3">${esc(g.grupo)}</td></tr>`
+                    + g.itens.map(linha).join('')).join('')
+    : itens.map(linha).join('');
+  return `<div class="tab-scroll"><table>
+    <thead><tr><th>Inspeção</th><th>Avaliação</th><th>Observações</th></tr></thead>
+    <tbody>${linhas}</tbody></table></div>`;
+}
+
+function telaRelatorio(){
+  const eq = equipAtual(), hosp = hospDe(eq);
+  const achados = [], naoAplicaveis = [];
+  let elbs = 0, pends = 0;
+  eq.transdutores.forEach(tr => testesDe(tr.slot).forEach(t=>{
+    const a = avaliar(t, eq, tr);
+    if (a.situacao === 'nconf') achados.push({tr, t, a});
+    if (a.situacao === 'na')    naoAplicaveis.push({tr, t});
+    if (a.situacao === 'elb')   elbs++;
+    if (a.situacao === 'pend')  pends++;
+  }));
+
+  const ano = (eq.visita || '').slice(-4) || String(new Date().getFullYear());
+
+  /* --- descrição dos testes: gerada da mesma lista que monta o roteiro --- */
+  /* A descrição sai na redação normativa, inclusive onde o texto tem mais
+     de um parágrafo — a linha em branco no texto é o que os separa. */
+  const paragrafos = s => s.split(/\n\s*\n/)
+    .map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+
+  const descricoes = TESTES.map(t=>`
+    <div class="teste-desc">
+      <h5>${esc(t.nome)}</h5>
+      ${paragrafos(t.desc).map(p=>`<p>${esc(p)}</p>`).join('')}
+      <div class="tol-box">
+        <div class="cab">Tolerância IN - 96</div>
+        <div class="val">${esc(t.tolIN.replace(/\s+/g, ' ').trim())}</div>
+      </div>
+    </div>`).join('');
+
+  /* --- resultados por transdutor ---------------------------------------- */
+  const corpo = eq.transdutores.map((tr,i)=>{
+    const n = i + 1, t9 = tr.tec;
+    const blocos = testesDe(tr.slot).map((t,j)=> blocoTeste(t, eq, tr, n + '.' + (j+3) + '.')).join('');
+    return `<section class="bloco">
+      <h3 class="sec-tit">${n}. Transdutor:
+        <b>${esc(tr.modelo)} - ${esc(tr.cod)} - ${esc(tr.tipo)}</b>
+        <span class="slot mono">${esc(tr.slot)}</span></h3>
+
+      <h4><span class="num">${n}.1.</span>Parâmetros utilizados:</h4>
+      <p class="prosa" style="margin-bottom:10px">Os parâmetros fixos do protocolo
+      utilizado estão detalhados na tabela a seguir. Adicionalmente, os parâmetros
+      variáveis, como ganho (Gn), posição do foco (Fc), frequência (Fr) e profundidade
+      (Pr), serão especificados individualmente para cada teste realizado.</p>
+      <div class="dl" style="margin-bottom:6px">
+        <div><span>Protocolo</span><b>${esc(t9.protocolo)}</b></div>
+        <div><span>Potência</span><b>${esc(t9.potencia)}</b></div>
+        <div><span>Alcance dinâmico</span><b>${esc(t9.ad)}</b></div>
+        <div><span>Profundidade máxima</span><b>${esc(t9.profmax)}</b></div>
+        <div><span>Rejeição</span><b>${esc(t9.rejeicao)}</b></div>
+        <div><span>Mapa de cinzas</span><b>${esc(t9.graymap)}</b></div>
+        <div><span>Banda focal</span><b>${esc(t9.bandafocal)}</b></div>
+        <div><span>Densidade de linha</span><b>${esc(t9.densidade)}</b></div>
+      </div>
+
+      <h4><span class="num">${n}.2.</span>Inspeção geral</h4>
+      ${tabelaInspecao(INSPECAO_TRANSD, (eq.inspTransd || {})[tr.slot])}
+
+      ${blocos}
+    </section>`;
+  }).join('');
+
+  const conclusao = pends
+    ? `<div class="parecer">
+         <b>Visita em andamento — ${pends} teste(s) ainda não realizados.</b>
+         <p>A conclusão é emitida quando o roteiro fechar. O que já foi medido aparece
+         avaliado acima.</p></div>`
+    : achados.length
+    ? `<div class="parecer nconf">
+         <b>${achados.length} teste(s) apresentam avaliação fora dos padrões estabelecidos.</b>
+         <p>Os demais testes apresentam avaliação dentro dos padrões estabelecidos pela
+         Resolução RDC 611 da ANVISA de 09/03/2022 e pela Instrução Normativa nº 96 de
+         27/05/2021. As não conformidades listadas abaixo não suspendem a utilização do
+         equipamento, e devem ser verificadas na manutenção corretiva.</p></div>`
+    : `<div class="parecer conf">
+         <b>Os testes apresentam avaliação dentro dos padrões estabelecidos.</b>
+         <p>Nenhum desvio em relação aos critérios da Instrução Normativa nº 96/2021 ou às
+         linhas de base estabelecidas.</p></div>`;
+
+  const listaAchados = achados.map(({tr,t,a})=>
+    `<div class="nc"><span class="chip c-nconf">Não Conforme</span>
+      <div class="cnt"><b>${esc(tr.modelo)} · ${esc(t.nome)}</b>
+      <p>${esc(tolDe(t, tr))} · medido ${esc(a.texto)}</p></div></div>`).join('');
+
+  topo({voltar:'equip', titulo:'Relatório de CQ',
+        sub:(eq.relatorio ? eq.relatorio + ' · ' : '') + eq.marca + ' ' + eq.modelo});
+
+  el('vista').innerHTML = `
+    ${podeHistorico(eq) ? chaveHistorico() : '<div style="height:12px"></div>'}
+
+    <article class="laudo anima">
+
+      <div class="capa">
+        <div class="logo" aria-hidden="true">${MARCA}</div>
+        <div class="capa-num">${eq.relatorio ? 'No. ' + esc(eq.relatorio) : 'Relatório sem número'}</div>
+        <div class="capa-cat">${esc(eq.setor) || 'Ultrassom'}</div>
+        <h1>Relatório de Controle de Qualidade ${esc(eq.periodicidade)}</h1>
+        <div class="capa-eq">${esc(eq.marca)} — ${esc(eq.modelo)}
+          <span>N/S: ${esc(eq.ns)}</span><span>${esc(eq.id)}</span></div>
+        <div class="capa-cli">${esc(hosp.nome)}</div>
+        <div class="capa-ano mono">${esc(ano)}</div>
+        <div class="capa-rod">Elaborado por<br>
+          <b>${esc(EMISSOR.razao)}</b><br>${esc(EMISSOR.endereco)}<br>${esc(EMISSOR.contato)}</div>
+      </div>
+
+      ${cabecaDoc(eq)}
+      <span class="aviso-demo">Demonstração — histórico de visitas anteriores simulado</span>
+
+      <section>
+        <h3>Cadastro</h3>
+        <div class="dl">
+          <div><span>Instituição</span><b>${esc(hosp.nome)}</b></div>
+          <div><span>CNPJ</span><b class="mono">${esc(hosp.cnpj) || '—'}</b></div>
+          <div><span>Endereço</span><b>${esc(hosp.endereco) || '—'}</b></div>
+          <div><span>Cidade</span><b>${esc(hosp.cidade)}${hosp.cep ? ' · ' + esc(hosp.cep) : ''}</b></div>
+          <div><span>Telefone</span><b>${esc(hosp.telefone) || '—'}</b></div>
+          <div><span>Responsável técnico</span><b>${esc(hosp.rt) || '—'}</b></div>
+          <div><span>Licença sanitária</span><b>${esc(hosp.alvara) || '—'}</b></div>
+          <div><span>Unidade</span><b>${esc(eq.unidade) || '—'}</b></div>
+          <div><span>Setor / sala</span><b>${esc(eq.setor)} · ${esc(eq.sala) || '—'}</b></div>
+          <div><span>Categoria</span><b>Ultrassom</b></div>
+          <div><span>Equip. Mod.</span><b>${esc(eq.marca)} ${esc(eq.modelo)}</b></div>
+          <div><span>Código</span><b class="mono">${esc(eq.id)}</b></div>
+          <div><span>N/S</span><b class="mono">${esc(eq.ns)}</b></div>
+          <div><span>Patrimônio</span><b class="mono">${esc(eq.patrimonio) || '—'}</b></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Objetivo</h3>
+        <p class="prosa">${esc(NORMA.objetivo.replace(/\s+/g,' ').trim())}</p>
+        <div class="dl" style="margin-top:16px">
+          <div><span>Data da realização das medidas</span><b>${esc(eq.visita) || '—'}</b></div>
+          <div><span>Data de validade</span><b>${esc(eq.validade) || '—'}</b></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Introdução</h3>
+        ${NORMA.introducao.map(p=>`<p class="prosa">${esc(p.replace(/\s+/g,' ').trim())}</p>`).join('')}
+      </section>
+
+      <section>
+        <h3>Descrição dos testes e limites recomendados pela IN-96</h3>
+        ${descricoes}
+      </section>
+
+      <section>
+        <h3>Referências</h3>
+        <ul>${NORMA.referencias.map(r=>`<li>${esc(r.replace(/\s+/g,' ').trim())}</li>`).join('')}</ul>
+      </section>
+
+      <section>
+        <h3>Equipamento utilizado</h3>
+        <ul>${NORMA.simuladores.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+      </section>
+
+      <section>
+        <h3>Definição dos parâmetros de avaliação</h3>
+        <div class="defin">${NORMA.definicoes.map(([k,v])=>
+          `<p><b>${esc(k)}:</b> ${esc(v.replace(/\s+/g,' ').trim())}</p>`).join('')}</div>
+      </section>
+
+      <section>
+        <h3>Identificação dos transdutores</h3>
+        <div class="tab-scroll"><table>
+          <thead><tr><th>Slot</th><th>Tipo</th><th>Modelo</th><th>Número de série</th><th>Código</th></tr></thead>
+          <tbody>${eq.transdutores.map(tr=>
+            `<tr><td class="mono">${esc(tr.slot)}</td><td>${esc(tr.tipo)}</td>
+             <td>${esc(tr.modelo)}</td><td class="mono">${esc(tr.ns)}</td>
+             <td class="mono">${esc(tr.cod)}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <h3>Inspeção geral</h3>
+        ${tabelaInspecao(INSPECAO_EQUIP, eq.inspecao, eq.inspObs, VISTORIA)}
+      </section>
+
+      <section>
+        <h3>Como as avaliações foram obtidas</h3>
+        <p class="prosa">${!temMedidas(eq)
+          ? `Nenhuma medida registrada nesta visita. O relatório já traz o cadastro, os
+             transdutores e a estrutura dos treze testes de cada um — as tabelas se
+             preenchem conforme a coleta avança.`
+          : eq.semHistorico
+          ? `Equipamento cadastrado agora, sem visita anterior. Os testes de critério fixo
+             saem avaliados normalmente; os de linha de base saem como <strong>ELB</strong>
+             e passam a ser comparáveis a partir da próxima visita.`
+          : ESTADO.historico
+          ? `As referências vêm das visitas de ${ANOS[0]} a ${ANOS[ANOS.length-1]}, agrupadas pela
+             combinação instituição · unidade · nº de série do equipamento · nº de série do
+             transdutor · protocolo, e só entre medidas com a mesma técnica de aquisição.
+             <strong>${elbs === 0 ? 'Nenhum campo saiu como ELB.' : elbs + ' campo(s) ainda sem referência.'}</strong>`
+          : `Esta é a primeira medida de cada combinação. Os testes de critério fixo saem
+             avaliados normalmente. Os demais dependem de referência e saem como
+             <strong>ELB</strong>: <strong>${elbs} campo(s)</strong> neste relatório, cada
+             um digitado à mão hoje.`}</p>
+      </section>
+
+      <section><h3>Resultados:</h3></section>
+      ${corpo}
+
+      <section>
+        <h3>Conclusão</h3>
+        ${conclusao}
+        ${achados.length ? '<div style="margin-top:16px">' + listaAchados + '</div>' : ''}
+        ${naoAplicaveis.length ? `<p class="prosa" style="margin-top:16px">
+          <b>${naoAplicaveis.length} teste(s) marcados como não aplicáveis:</b>
+          ${esc(naoAplicaveis.map(({tr,t}) => tr.modelo + ' · ' + t.nome).join('; '))}.
+          A justificativa de cada um consta na coluna de observações do teste
+          correspondente.</p>` : ''}
+        ${elbs ? `<p class="prosa" style="margin-top:16px">
+          <b>${elbs} parâmetro(s) saem como ELB</b> — estabelecendo linha de base. Serão
+          comparáveis a partir da próxima visita, sob a mesma técnica de aquisição.</p>` : ''}
+        <p class="prosa" style="margin-top:16px">${esc(NORMA.conclusaoBase.replace(/\s+/g,' ').trim())}</p>
+        <p class="prosa" style="margin-bottom:4px">Recomenda-se cuidados durante o manuseio
+        dos transdutores:</p>
+        <ul>${NORMA.recomendacoes.map(r=>`<li>${esc(r.replace(/\s+/g,' ').trim())}</li>`).join('')}</ul>
+
+        <p class="prosa" style="margin-top:22px">${esc(hosp.cidade)}, ${esc(eq.visita) || '—'}.</p>
+        <div class="assinaturas">${NORMA.assinaturas.map(([a,b])=>
+          `<div class="assin"><b>${esc(a)}</b>${esc(b)}</div>`).join('')}</div>
+        <p class="nota-icp">${esc(NORMA.icp.replace(/\s+/g,' ').trim())}</p>
+      </section>
+    </article>
+
+    ${acaoFixa('<button class="bt principal" id="btImp">Imprimir / salvar em PDF</button>')}`;
+
+  ligarChave();
+  el('btImp').addEventListener('click', ()=> window.print());
+}
+
+/* ==========================================================================
+   13. Sobre
+   ========================================================================== */
+
+function telaSobre(){
+  const anterior = ESTADO.equip ? 'equip' : (ESTADO.hosp ? 'parque' : 'hospitais');
+  topo({voltar:anterior, titulo:'Sobre a demonstração',
+        sub:'Protótipo navegável · não é o sistema em produção'});
+
+  el('vista').innerHTML = `
+    <div style="height:14px"></div>
+
+    <div class="card pad">
+      <p class="prosa">Roda inteira dentro de um arquivo HTML, sem servidor e sem rede.
+      O parque de demonstração tem três equipamentos, distribuídos em três instituições —
+      um hospital, uma clínica e uma unidade de pronto atendimento:</p>
+      <p class="prosa"><strong>Philips Affiniti 70G</strong> — Hospital Santa Clara, três
+      transdutores, com o acervo completo de medidas dos treze testes.</p>
+      <p class="prosa"><strong>GE LOGIQ E9</strong> — Clínica Imagem Vergueiro, também com
+      três transdutores e o roteiro inteiro medido.</p>
+      <p class="prosa">O terceiro, na UPA Jardim do Sul, está cadastrado e sem visita — é o
+      estado em que um equipamento novo nasce.</p>
+      <p class="prosa"><strong>As visitas abrem em branco.</strong> O cadastro do parque
+      — hospital, equipamento, transdutor, técnica do protocolo — vem pronto, porque é
+      dado de acervo e não muda a cada visita. As medidas não: cada uma começa vazia, com
+      os cabeçalhos dos treze testes montados e os campos esperando digitação. É assim que
+      o coletor chega na sala de exame.</p>
+      <p class="prosa">O botão <strong>Gerar dados de demonstração</strong> — na tela
+      inicial, ou no rodapé de cada equipamento — despeja as medidas reais por cima, para
+      ver o roteiro cheio e o relatório fechado. Dentro de cada teste há o mesmo botão para
+      um item só, ao lado do de <strong>limpar este teste</strong>: dá para abrir um teste em
+      branco, mostrar a digitação à mão e preencher o resto com um toque. O
+      <strong>histórico de 2023 a 2025 é simulado</strong>, e só aparece quando há medidas
+      com que comparar.</p>
+    </div>
+
+    <p class="rotulo">O que o interruptor demonstra</p>
+    <div class="card pad">
+      <div class="tab-scroll"><table class="comparativo">
+        <thead><tr><th></th><th>Hoje</th><th>Com o acervo carregado</th></tr></thead>
+        <tbody>
+          <tr><td><b>Zona focal, penetração, objetos anecoicos, distorção, limiar, Doppler</b></td>
+              <td>Campo sai <span class="mono">ELB</span>. Alguém digita à mão.</td>
+              <td>Referência calculada e variação avaliada automaticamente.</td></tr>
+          <tr><td><b>Tendência entre visitas</b></td>
+              <td>Só comparando PDFs lado a lado.</td>
+              <td>Série de quatro pontos visível na hora da medida.</td></tr>
+          <tr><td><b>Achado que ninguém veria</b></td>
+              <td>Um alvo que sempre foi visto e deixou de ser passa em branco.</td>
+              <td>Aviso na própria célula, e entra na conclusão.</td></tr>
+          <tr><td><b>Fechamento do relatório</b></td>
+              <td>Planilha, revisão manual, exportação.</td>
+              <td>Sai pronto ao fim da visita, com as não conformidades listadas.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <p class="rotulo">O que dá para experimentar</p>
+    <div class="card pad">
+      <p class="prosa">A navegação tem três níveis — <strong>instituição → equipamento →
+      transdutor</strong> — e em cada um há um botão para cadastrar o que ainda não
+      existe. Dá para criar um hospital ou clínica do zero, pendurar um equipamento nele,
+      adicionar transdutores e sair medindo. É a mesma ordem do coletor de raios X: primeiro
+      onde, depois o quê.</p>
+      <p class="prosa">Os campos de medida são editáveis: digite um valor e a avaliação,
+      o painel de linha de base e o minigráfico se recalculam na hora. Um transdutor
+      adicionado a um equipamento existente já nasce com os treze testes.</p>
+      <p class="prosa">Cada teste tem dois botões que valem mais que a medida:
+      <strong>Estabelecendo nova linha de base</strong> descarta o histórico daquela
+      combinação — é o que se usa depois de trocar transdutor, fazer manutenção corretiva
+      ou mudar a técnica de propósito; e <strong>Não aplicável</strong>, para o teste que
+      não cabe naquele transdutor. Os dois aceitam justificativa, e é ela que sai na coluna
+      de observações do relatório.</p>
+    </div>
+
+    <p class="rotulo">O relatório</p>
+    <div class="card pad">
+      <p class="prosa">O botão <strong>Ver o relatório gerado</strong> sai na estrutura de
+      um relatório de campo completo: capa com espaço para o logotipo, cadastro, objetivo,
+      introdução, descrição dos treze testes com a caixa <b>Tolerância IN&nbsp;-&nbsp;96</b>
+      de cada um, referências, equipamento utilizado, definição dos parâmetros, identificação
+      dos transdutores, inspeção geral, resultados na mesma numeração (1.1, 1.2, 1.3…),
+      conclusão, assinaturas e a nota de assinatura digital ICP-Brasil. É a mesma estrutura
+      e a mesma formatação de impressão do relatório do coletor de raios X — muda o conteúdo
+      normativo, não o documento.</p>
+      <p class="prosa">A identidade do emissor está num único ponto do código
+      (<span class="mono">EMISSOR</span>), e o logotipo, num único SVG
+      (<span class="mono">MARCA</span>): preenchidos os dois, capa, cabeçalho de folha e
+      assinaturas passam a sair com a marca de quem emite. As
+      tolerâncias são as da IN nº 96 e dependem da frequência do transdutor: a zona morta
+      admite 7, 5 ou 3 mm; a resolução axial 2 ou 1 mm; a lateral 4, 3 ou 1,5 mm. A tela de
+      cada teste mostra o limite que de fato foi aplicado àquele transdutor, e o relatório
+      traz a redação integral da norma.</p>
+      <p class="prosa">A descrição dos testes é gerada da mesma lista que monta o roteiro
+      de coleta — texto, tolerância e formulário saem da mesma definição, então não há como
+      o relatório descrever um critério e a coleta aplicar outro.</p>
+    </div>
+
+    <p class="rotulo">Como isso seria hospedado</p>
+    <div class="card pad">
+      <p class="prosa">O arquivo é estático: sobe em qualquer hospedagem, inclusive num
+      subdomínio próprio. O banco fica separado — guarda só as medidas e as linhas de base,
+      que são dados pequenos: cerca de <strong>150 medidas por equipamento por visita</strong>,
+      algo em torno de 6 MB por ano de acervo inteiro.</p>
+      <p class="prosa">Funciona offline por desenho. Na sala de exame não há rede confiável,
+      então a coleta grava no próprio aparelho e a fila sobe depois. É o mesmo padrão do
+      coletor de radiografia convencional da IN nº 90/2021, que compartilha com este a
+      navegação, o sistema visual e o formato do relatório.</p>
+    </div>
+
+    ${acaoFixa('<button class="bt principal" id="btVoltar2">Voltar ao início</button>')}`;
+
+  el('btVoltar2').addEventListener('click', ()=> ir('hospitais', {hosp:null, equip:null}));
+}
+
+/* ==========================================================================
+   14. Render
+   ========================================================================== */
+
+/* ==========================================================================
+   Persistência da visita
+
+   Este coletor guarda cadastro e coleta no mesmo objeto do PARQUE — nasceu
+   assim, e mudar isso mexeria em todas as telas. A separação acontece aqui,
+   na fronteira do armazenamento: `CAMPOS_VISITA` diz o que é da visita, e só
+   isso é gravado. O acervo continua vindo do cadastro da casca.
+
+   Os transdutores são um caso à parte: são acervo, mas a casca não os modela
+   — quem os cadastra é este coletor, na tela de transdutores. Então ficam
+   gravados aqui também, sob `BD.transdutores`, e não junto da visita.
+   ========================================================================== */
+
+const CHAVE = 'coletor-cq-us-in96-v1';
+
+/* O que pertence à visita e não ao acervo. Campo que não estiver nesta lista
+   não é gravado — se um dia a coleta ganhar um dado novo no equipamento,
+   acrescente aqui ou ele some ao recarregar. */
+const CAMPOS_VISITA = ['medidas', 'inspecao', 'inspObs', 'inspTransd',
+                       'visita', 'validade', 'semHistorico'];
+
+function carregar(){
+  try {
+    const s = localStorage.getItem(CHAVE);
+    if (s){
+      const d = JSON.parse(s);
+      if (d && typeof d === 'object') return {visitas: d.visitas || {}, transdutores: d.transdutores || {}};
+    }
+  } catch(e){ /* modo privado ou dado corrompido: começa limpo */ }
+  return {visitas:{}, transdutores:{}};
+}
+
+let BD = carregar();
+
+/* Devolve ao PARQUE o que estava gravado. Roda depois da ponte com o
+   cadastro, senão a ponte reconstrói os equipamentos por cima. */
+function hidratar(){
+  PARQUE.forEach(eq => {
+    const v = BD.visitas[eq.id];
+    if (v) CAMPOS_VISITA.forEach(k => { if (v[k] !== undefined) eq[k] = v[k]; });
+    const t = BD.transdutores[eq.id];
+    if (t && t.length) eq.transdutores = t;
+  });
+}
+
+/* O veredito de cada visita, gravado junto. É o que a tela de relatórios da
+   casca lê — ela não conhece os treze testes nem a linha de base, e não pode
+   recalcular nada. Mesmo formato do coletor de raios X. */
+function atualizarResumos(){
+  PARQUE.forEach(eq => {
+    const v = BD.visitas[eq.id];
+    if (!v) return;
+    let r;
+    try { r = resumoEquip(eq); }
+    catch(e){ return; }   /* visita que não fecha a conta não impede o salvamento */
+    v.resumo = {
+      situacao: r.situacao,
+      contagem: r.geral,
+      concluidos: r.feitos,
+      total: r.total,
+      atualizado: Date.now()
+    };
+  });
+}
+
+/* Guarda o texto da última gravação: render() roda a cada toque, inclusive
+   nos que só navegam, e reescrever o mesmo JSON a cada tela seria desperdício
+   sem ganho nenhum. */
+let ultimoGravado = null;
+
+/* Equipamento em que ninguém tocou não tem visita. Sem esta guarda, gravar
+   percorreria o parque inteiro e criaria um registro vazio para cada máquina
+   — e a tela de relatórios da casca listaria o parque todo como visitado,
+   cada um com zero de trinta e sete. */
+const temVisita = eq => !!(
+  (eq.medidas    && Object.keys(eq.medidas).length) ||
+  (eq.inspecao   && Object.keys(eq.inspecao).length) ||
+  (eq.inspTransd && Object.keys(eq.inspTransd).length));
+
+function persistir(){
+  PARQUE.forEach(eq => {
+    /* Os transdutores são acervo e se gravam sempre: cadastrar uma sonda não
+       é iniciar uma visita, mas também não pode se perder. */
+    if (eq.transdutores) BD.transdutores[eq.id] = eq.transdutores;
+    if (!temVisita(eq)){ delete BD.visitas[eq.id]; return; }
+    const v = BD.visitas[eq.id] = BD.visitas[eq.id] || {};
+    CAMPOS_VISITA.forEach(k => { if (eq[k] !== undefined) v[k] = eq[k]; });
+  });
+  try { atualizarResumos(); } catch(e){ /* resumo é conveniência, não bloqueia */ }
+  try {
+    const texto = JSON.stringify(BD);
+    if (texto === ultimoGravado) return;
+    localStorage.setItem(CHAVE, texto);
+    ultimoGravado = texto;
+  } catch(e){ /* cota estourada ou modo privado: a sessão segue em memória */ }
+}
+
+/* Apaga a visita deste equipamento do armazenamento, sem tocar no acervo nem
+   nos transdutores — é o que "limpar medidas" quer dizer. */
+function esquecerVisita(eqId){
+  if (BD.visitas[eqId]) delete BD.visitas[eqId];
+  ultimoGravado = null;
+}
+
+/* ==========================================================================
+   Exportação da visita em planilha
+
+   Formato longo, igual ao dos coletores de raios X: cada linha é uma
+   grandeza, e o par variável/valor diz o que aquele número é. A diferença é
+   a coluna `transdutor` — o eixo que só o ultrassom tem. Nos outros
+   coletores ela não existe; no banco, empilhado, ela fica vazia para eles.
+
+   O que a planilha guarda é a **leitura**. A situação vai junto por
+   conveniência, mas depende da linha de base do serviço e do histórico: ao
+   reimportar, reavalie, não confie na coluna.
+   ========================================================================== */
+
+const COLUNAS_PLANILHA = [{rot:'', larg:58}, {rot:'', larg:36}];
+
+/* A unidade vai no rótulo, e não numa terceira coluna: assim a coluna B fica
+   só com o que foi medido ou cadastrado. */
+const un = u => u ? ' (' + u + ')' : '';
+
+/* O motor trabalha em ponto flutuante; a planilha não precisa dos dezessete
+   dígitos que sobram da conta. */
+const arredP = v => (v == null || !isFinite(v)) ? v : Number(Number(v).toFixed(4));
+
+function linhasPlanilha(eqId){
+  const eq = PARQUE.find(e => e.id === eqId);
+  const h = hospPorId(eq.hosp);
+  const data = eq.visita || hoje();
+  const L = [];
+
+  const par   = (rot, val) => { if (val != null && val !== '' && val !== '—') L.push([rot, val]); };
+  const sub   = (rot, val) => par('    ' + rot, val);
+  const forte = rot => { const l = [rot, '']; l.forte = true; L.push(l); };
+  const secao = t => L.push({secao:t});
+  const vazio = () => L.push({vazio:true});
+
+  L.push({titulo:'Controle de Qualidade — Ultrassom Diagnóstico'});
+  par('Instrução Normativa', 'IN nº 96/2021 · RDC nº 611/2022');
+  par('Data da visita', data);
+  par('Relatório nº', eq.relatorio);
+  par('Periodicidade', eq.periodicidade);
+  vazio();
+
+  secao('CLIENTE');
+  par('Instituição', h.nome);
+  par('CNPJ', h.cnpj);
+  par('Endereço', h.endereco);
+  par('Cidade', h.cidade);
+  par('CEP', h.cep);
+  par('Telefone', h.telefone);
+  par('Responsável técnico', h.rt);
+  par('Licença sanitária', h.alvara);
+  vazio();
+
+  secao('EQUIPAMENTO');
+  par('Código', eq.id);
+  par('Marca', eq.marca);
+  par('Modelo', eq.modelo);
+  par('Número de série', eq.ns);
+  par('Patrimônio', eq.patrimonio);
+  par('Unidade', eq.unidade);
+  par('Setor', eq.setor);
+  par('Sala', eq.sala);
+  vazio();
+
+  secao('VISTORIA DO EQUIPAMENTO');
+  VISTORIA.forEach(g => {
+    forte(g.grupo);
+    g.itens.forEach(item => {
+      par('    ' + item, (eq.inspecao || {})[item] || 'Não inspecionado');
+      const o = (eq.inspObs || {})[item];
+      if (o) par('        observação', o);
+    });
+  });
+  vazio();
+
+  /* Um bloco por transdutor: o cadastro da sonda, a técnica do protocolo que
+     torna a medida repetível na próxima visita, e os treze testes. */
+  eq.transdutores.forEach(tr => {
+    secao('TRANSDUTOR ' + tr.slot + ' · ' + tr.modelo);
+    par('Tipo', tr.tipo);
+    par('Modelo', tr.modelo);
+    par('Número de série', tr.ns);
+    par('Código', tr.cod);
+    par('Frequência máxima (MHz)', tr.fmax);
+
+    forte('Técnica do protocolo');
+    Object.keys(tr.tec || {}).forEach(k => sub(k, tr.tec[k]));
+
+    forte('Inspeção do transdutor');
+    (INSPECAO_TRANSD || []).forEach(item =>
+      sub(item, ((eq.inspTransd || {})[tr.slot] || {})[item] || 'Não inspecionado'));
+
+    testesDe(tr.slot).forEach(t => {
+      const reg = (eq.medidas[tr.slot] || {})[t.id];
+      const a = avaliar(t, eq, tr);
+      forte(t.nome);
+
+      if (!reg){ sub('Situação', 'não realizado'); return; }
+
+      Object.keys(reg.acq || {}).forEach(k => {
+        if (reg.acq[k] != null && reg.acq[k] !== '') sub('aquisição · ' + k, reg.acq[k]);
+      });
+
+      if (t.tipo === 'qualit'){
+        sub('Avaliação', reg.res || '—');
+      } else if (t.tipo === 'escalar'){
+        (t.campos || []).forEach(c => {
+          if (!nada(reg[c.k])) sub(c.r || c.k, arredP(reg[c.k]));
+        });
+      } else {
+        linhasDe(t, reg).forEach(l => {
+          (t.cols || []).forEach(c => {
+            const val = (reg.linhas[l] || {})[c.k];
+            if (!nada(val))
+              sub(String(l) + ' · ' + (c.r || c.k) + un(c.un),
+                  typeof val === 'number' ? arredP(val) : val);
+          });
+        });
+      }
+
+      if (t.tolIN) sub('Tolerância', t.tolIN);
+      sub('Situação', ROTULOS[a.situacao] || a.texto);
+      if (reg.marcaObs || reg.obs) sub('Observação', reg.marcaObs || reg.obs);
+    });
+    vazio();
+  });
+
+  return L;
+}
+
+function nomePlanilha(eqId){
+  const eq = PARQUE.find(e => e.id === eqId);
+  const d = String((eq && eq.visita) || hoje()).split('/');
+  const iso = d.length === 3 ? d[2] + '-' + d[1] + '-' + d[0] : 'sem-data';
+  return 'CQ_IN96_' + eqId + '_' + iso + '.xlsx';
+}
+
+/* Precisa ser chamada de dentro de um toque: tanto a folha de
+   compartilhamento quanto o download exigem gesto do usuário. */
+async function exportarPlanilha(eqId, botao){
+  if (!window.Planilha){
+    alert('O gerador de planilha não carregou. Recarregue o aplicativo.');
+    return;
+  }
+  const rotulo = botao ? botao.textContent : '';
+  if (botao){ botao.disabled = true; botao.textContent = 'Gerando…'; }
+  try {
+    const blob = Planilha.gerar({
+      aba: 'Visita',
+      colunas: COLUNAS_PLANILHA,
+      linhas: linhasPlanilha(eqId),
+      filtro: false, congelar: false
+    });
+    const como = await Planilha.salvar(blob, nomePlanilha(eqId));
+    if (botao) botao.textContent = como === 'cancelado' ? rotulo : 'Planilha pronta';
+  } catch (e){
+    if (botao) botao.textContent = 'Falhou — tente de novo';
+    console.error('exportarPlanilha', e);
+  } finally {
+    if (botao){
+      botao.disabled = false;
+      setTimeout(()=>{ if (botao) botao.textContent = rotulo; }, 2600);
+    }
+  }
+}
+
+/* ==========================================================================
+   Vistoria do equipamento
+
+   A inspeção visual não é teste do Anexo I, mas é o que abre a visita e o que
+   o laudo traz antes dos resultados. Fica numa tela própria, percorrida de uma
+   vez ao chegar na sala, em vez de espalhada entre os testes.
+
+   Três estados por item: conforme, não conforme e não inspecionado. O terceiro
+   é o inicial e sobrevive: visita em que ninguém olhou o cabo de alimentação
+   sai dizendo isso, e não "conforme" por omissão.
+   ========================================================================== */
+
+function contarVistoria(eq){
+  const c = {conf:0, nconf:0, pend:0};
+  INSPECAO_EQUIP.forEach(i=>{
+    const s = (eq.inspecao || {})[i];
+    if (s === 'Conforme') c.conf++;
+    else if (s) c.nconf++;
+    else c.pend++;
+  });
+  return c;
+}
+
+function telaVistoria(){
+  const eq = equipAtual();
+  const c  = contarVistoria(eq);
+  eq.inspecao = eq.inspecao || {};
+  eq.inspObs  = eq.inspObs  || {};
+
+  const linha = (item)=>{
+    const i = INSPECAO_EQUIP.indexOf(item);
+    const s = eq.inspecao[item];
+    const o = eq.inspObs[item] || '';
+    return `<div class="vist-item ${s && s !== 'Conforme' ? 'nc' : ''}">
+      <span class="nome">${esc(item)}</span>
+      <span class="sn">
+        <button data-i="${i}" data-v="Conforme" aria-pressed="${s === 'Conforme'}">Conforme</button>
+        <button data-i="${i}" data-v="Não conforme" aria-pressed="${!!s && s !== 'Conforme'}">Não conforme</button>
+      </span>
+      ${s && s !== 'Conforme'
+        ? `<textarea class="obs" data-o="${i}"
+             placeholder="O que foi encontrado — vai para a coluna de observações do laudo">${esc(o)}</textarea>`
+        : ''}
+    </div>`;
+  };
+
+  const itens = VISTORIA.map(g=>{
+    const pendentes = g.itens.filter(i=>!eq.inspecao[i]).length;
+    return `<div class="grupo-tit"><h2>${esc(g.grupo)}</h2>
+        <span>${g.itens.length - pendentes}/${g.itens.length}</span></div>
+      <div class="vist-lista">${g.itens.map(linha).join('')}</div>`;
+  }).join('');
+
+  topo({voltar:'equip', titulo:'Vistoria do equipamento',
+        sub:eq.marca + ' ' + eq.modelo + ' · ' + eq.id});
+
+  el('vista').innerHTML = `
+    <div style="margin:14px 0 12px">
+      <h1>Inspeção visual</h1>
+      <div class="sub">${INSPECAO_EQUIP.length} itens · ${c.conf} conforme(s) ·
+        ${c.nconf} não conforme(s) ·
+        ${c.pend ? c.pend + ' ainda não inspecionado(s)' : 'nenhum item em aberto'}</div>
+    </div>
+
+    <p class="sub" style="margin:0 2px 14px; max-width:66ch">
+      Console, monitor, transdutores, biossegurança e documentação. Ultrassom não
+      emite radiação ionizante: aqui não há sinalização luminosa, vestimenta
+      plumbífera nem dosimetria a conferir. Tocar de novo no botão já marcado
+      devolve o item a <b>não inspecionado</b> — o relatório diz o que foi olhado,
+      não o que se supõe.
+    </p>
+
+    ${itens}
+
+    ${acaoFixa(`
+      <button class="bt" id="btTodosConf">Marcar todos conformes</button>
+      <button class="bt principal" id="btVoltarEq">Voltar ao equipamento</button>`)}`;
+
+  document.querySelectorAll('.vist-item .sn button').forEach(b =>
+    b.addEventListener('click', ()=>{
+      const item = INSPECAO_EQUIP[Number(b.dataset.i)];
+      /* Tocar no que já está marcado desmarca: é como se corrige um toque
+         errado sem ter de apagar a visita inteira. */
+      if (eq.inspecao[item] === b.dataset.v) {
+        delete eq.inspecao[item];
+        delete eq.inspObs[item];
+      } else {
+        eq.inspecao[item] = b.dataset.v;
+      }
+      render();
+    }));
+
+  /* A observação grava ao sair do campo, não a cada tecla: redesenhar a tela no
+     meio da digitação tiraria o foco a cada letra. */
+  document.querySelectorAll('.vist-item textarea.obs').forEach(t =>
+    t.addEventListener('change', ()=>{
+      eq.inspObs[INSPECAO_EQUIP[Number(t.dataset.o)]] = t.value;
+    }));
+
+  el('btTodosConf').addEventListener('click', ()=>{
+    INSPECAO_EQUIP.forEach(i=>{ if (!eq.inspecao[i]) eq.inspecao[i] = 'Conforme'; });
+    render();
+  });
+  el('btVoltarEq').addEventListener('click', ()=> ir('equip'));
+}
+
+const TELAS = {
+  hospitais:telaHospitais, cadHospital:telaCadHospital,
+  parque:telaParque,       cadastro:telaCadastro,
+  equip:telaEquip,         cadTransd:telaCadTransd,
+  transd:telaTransd,       teste:telaTeste,
+  vistoria:telaVistoria,   relatorio:telaRelatorio,
+  sobre:telaSobre
+};
+
+function alternarTema(){
+  const r = document.documentElement;
+  const escuroAgora = r.getAttribute('data-theme') === 'dark' ||
+    (!r.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  r.setAttribute('data-theme', escuroAgora ? 'light' : 'dark');
+}
+
+/* Gravar dentro do render é o que garante que nada se perca: neste coletor
+   o estado muda em dezenas de manipuladores, e todos terminam aqui. A
+   comparação com a última gravação evita reescrever a cada navegação. */
+function render(){
+  try { persistir(); } catch(e){ /* gravar nunca impede desenhar */ }
+
+  /* Estado órfão — o alvo pode ter sumido ao limpar medidas ou trocar de
+     hospital. Cai para o nível mais próximo que ainda existe. */
+  if (ESTADO.equip && !equipAtual()){ ESTADO.equip = null; ESTADO.slot = null; }
+  if (ESTADO.hosp && !HOSPITAIS.some(h => h.id === ESTADO.hosp)) ESTADO.hosp = null;
+
+  let v = ESTADO.vista;
+  if (['equip','cadTransd','transd','teste','vistoria','relatorio'].includes(v) && !ESTADO.equip)
+    v = ESTADO.hosp ? 'parque' : 'hospitais';
+  if (['parque','cadastro'].includes(v) && !ESTADO.hosp) v = 'hospitais';
+  if (['transd','teste'].includes(v) && ESTADO.equip &&
+      !equipAtual().transdutores.some(t => t.slot === ESTADO.slot)) v = 'equip';
+  ESTADO.vista = v;
+
+  (TELAS[v] || telaHospitais)();
+
+  const bv = el('abVoltar');
+  if (bv) bv.addEventListener('click', ()=> ir(bv.dataset.alvo, {rascunho:null}));
+  const bt = el('abTema');   if (bt) bt.addEventListener('click', alternarTema);
+  const bs = el('abSobre');  if (bs) bs.addEventListener('click', ()=> ir('sobre'));
+}
+
+
+/* ==========================================================================
+   Ponte com o cadastro da casca.
+
+   Este coletor nasceu com a lista de instituições e o parque escritos no
+   próprio arquivo. Quando a casca tem cadastro, ela manda — as constantes
+   são substituídas no lugar (sem reatribuir, que são const) e o parâmetro
+   ?cliente= abre direto no parque daquele cliente, que é o ciclo fechado:
+   o ícone da modalidade no menu já sabe de quem é o equipamento.
+
+   Sem a casca — o arquivo aberto solto — nada disso roda e o coletor segue
+   com os dados de demonstração que sempre teve.
+   ========================================================================== */
+(function(){
+  if (!window.Cadastro) return;
+
+  const clientes = Cadastro.clientes();
+  if (clientes.length) {
+    HOSPITAIS.length = 0;
+    HOSPITAIS.push.apply(HOSPITAIS, clientes);
+  }
+
+  /* O cadastro guarda o que é de todas as modalidades no núcleo e o resto em
+     `extra`; aqui os dois voltam a ser um objeto só, no formato que este
+     coletor espera, com `cliente` renomeado para `hosp`. */
+  const equipamentos = Cadastro.equipamentos({modalidade: 96})
+    .map(function(e){
+      const o = Object.assign({}, e, e.extra || {}, {hosp: e.cliente});
+      delete o.extra; delete o.cliente; delete o.modalidade;
+      return o;
+    });
+  if (equipamentos.length) {
+    PARQUE.length = 0;
+    PARQUE.push.apply(PARQUE, equipamentos);
+  }
+
+  /* A casca diz de quem é a visita e, quando vem dos Relatórios, em qual
+     equipamento e em qual tela. O que não existir é ignorado: um link velho
+     não pode deixar o coletor num estado sem volta. */
+  const params = new URLSearchParams(location.search);
+
+  const alvo = params.get('cliente');
+  if (alvo && HOSPITAIS.some(function(h){ return h.id === alvo; })) {
+    ESTADO.hosp = alvo;
+    ESTADO.vista = 'parque';
+  }
+
+  const eq = params.get('equip');
+  if (eq && PARQUE.some(function(x){ return x.id === eq; })) {
+    ESTADO.equip = eq;
+    const v = params.get('vista');
+    ESTADO.vista = ['equip','transd','teste','vistoria','relatorio'].indexOf(v) >= 0 ? v : 'equip';
+  }
+})();
+
+/* Depois da ponte: a ponte reconstrói o PARQUE a partir do cadastro da
+   casca, e é só então que faz sentido devolver a coleta gravada. */
+hidratar();
+
+history.replaceState(instantaneo(), '', '#' + ESTADO.vista);
+
+render();
+</script>
+<script>
+/* Registra o service worker da casca: o coletor aberto direto pelo link
+   também passa a funcionar offline, sem depender de visitar o menu antes.
+
+   E oferece a versão nova quando ela chega. Sem isto o worker novo instala,
+   fica em espera e nunca entra — o aparelho continua servindo o pacote
+   anterior, e nem a demonstração nem o campo percebem. */
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+
+  const aviso = document.getElementById('aviso');
+  let pediuAtualizar = false;
+
+  addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      reg.addEventListener('updatefound', function(){
+        const novo = reg.installing;
+        if (!novo) return;
+        novo.addEventListener('statechange', function(){
+          /* Só avisa se já havia um controlador: na primeira visita o
+             "há uma versão nova" seria mentira. */
+          if (novo.state === 'installed' && navigator.serviceWorker.controller && aviso)
+            aviso.hidden = false;
+        });
+      });
+      /* Quando a página abre com um worker já em espera — o caso de quem
+         fechou o app antes de aceitar — o `updatefound` não dispara de novo. */
+      if (reg.waiting && navigator.serviceWorker.controller && aviso) aviso.hidden = false;
+    }).catch(function(){ /* sem SW o coletor ainda funciona, só não fica offline */ });
+
+    /* Recarrega só quando a troca foi pedida: na primeira visita o
+       clients.claim() do worker também dispara controllerchange. */
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if (!pediuAtualizar) return;
+      pediuAtualizar = false;
+      location.reload();
+    });
+  });
+
+  const bt = document.getElementById('btAtualizar');
+  if (bt) bt.addEventListener('click', function(){
+    if (aviso) aviso.hidden = true;
+    pediuAtualizar = true;
+    navigator.serviceWorker.getRegistration().then(function(reg){
+      if (reg && reg.waiting) reg.waiting.postMessage('SW_ATUALIZAR');
+      else location.reload();
+    });
+  });
+})();
+</script>
+</body>
+</html>

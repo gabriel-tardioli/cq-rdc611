@@ -1,0 +1,25 @@
+{
+  "name": "Controle de Qualidade RDC 611",
+  "short_name": "CQ RDC 611",
+  "description": "Coletor de campo para os ensaios de controle de qualidade das Instruções Normativas nº 90 a 97/2021, da RDC nº 611/2022.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B0E10",
+  "theme_color": "#1B469A",
+  "categories": ["medical", "productivity", "utilities"],
+  "icons": [
+    { "src": "icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Radiografia convencional", "short_name": "Raios X", "url": "./coletor-rx-in90.html",
+      "icons": [{ "src": "icones/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Ultrassom diagnóstico", "short_name": "Ultrassom", "url": "./coletor-us-in96.html",
+      "icons": [{ "src": "icones/icone-192.png", "sizes": "192x192" }] }
+  ]
+}

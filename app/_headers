@@ -1,0 +1,26 @@
+# Cabeçalhos de publicação no Netlify.
+#
+# Fica dentro de app/ — e não no netlify.toml da raiz — porque assim vale
+# igual nos três caminhos de publicação: arrastar a pasta no Netlify Drop,
+# `netlify deploy` pela linha de comando, ou build ligado ao repositório.
+
+# O service worker não pode ficar em cache: se o navegador guardar uma cópia
+# antiga de sw.js, o aparelho nunca descobre que existe versão nova e fica
+# preso ao pacote anterior para sempre.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Mesma razão: são os arquivos que mudam quando entra uma modalidade.
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/manifest+json; charset=utf-8
+
+/base/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Os ícones só mudam se o app mudar de identidade: podem ficar guardados.
+/icones/*
+  Cache-Control: public, max-age=604800

@@ -1,0 +1,21 @@
+{
+  "name": "cq-rdc611",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Coletor de campo para o controle de qualidade das Instruções Normativas nº 90 a 97/2021, da RDC nº 611/2022 da ANVISA. Aplicativo web instalável, sem framework e sem dependência externa.",
+  "scripts": {
+    "dev": "node app/ferramentas/servir.mjs",
+    "semente": "node app/ferramentas/gerar-semente.mjs",
+    "icones": "node app/ferramentas/gerar-icones.mjs"
+  },
+  "comentario": [
+    "Este arquivo existe só pelos atalhos: `npm run dev` é o que a mão procura.",
+    "Não há dependências e não há build — o que está no repositório é o que roda,",
+    "e é por isso que não existe `npm install` a fazer. Os scripts chamam node",
+    "direto, e cada ferramenta resolve o próprio caminho, então rodam de qualquer",
+    "diretório.",
+    "Sem `type: module`: as ferramentas são .mjs e já são módulos; declarar o",
+    "campo faria os .js de app/base/ virarem módulos para o node, e eles são",
+    "carregados por <script> no navegador, onde não são."
+  ]
+}

@@ -1,0 +1,3927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coletor CQ">
+<meta name="application-name" content="Coletor CQ">
+<title>Coletor de campo · CQ odontológico intraoral · IN nº 95/2021</title>
+<script src="base/semente.js"></script>
+<script src="base/arquivos.js"></script>
+<script src="base/xlsx.js"></script>
+<script src="base/cadastro.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icones/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icones/icone-192.png">
+<meta name="theme-color" content="#1B469A">
+<style>a.ab-icone{text-decoration:none}</style>
+<style>
+/* ==========================================================================
+   Coletor de campo para controle de qualidade em radiologia odontológica
+   intraoral (IN nº 95/2021 · RDC 611/2022).
+
+   Arquivo único, sem dependência de rede: fontes do sistema, gráficos em
+   SVG, persistência em localStorage. Mesmo sistema visual e mesma hierarquia
+   de navegação — instituição, equipamento, ensaio — dos coletores de
+   radiografia convencional (IN nº 90/2021) e de ultrassom (IN nº 96/2021).
+   ========================================================================== */
+
+/* --- tokens: claro no :root, escuro nos dois guardas --------------------- */
+:root{
+  --bg:#F5F7F8; --surface:#FFFFFF; --surface-2:#FAFBFC; --hover:#EFF2F4;
+  --border:rgba(13,25,30,.09); --border-2:rgba(13,25,30,.16);
+  --text:#0F1618; --muted:#5F6E6A; --faint:#8B9793;
+  --accent:#2E63C8; --accent-soft:rgba(46,99,200,.10);
+  --ok:#2E9166; --warn:#B07714; --bad:#C2413F; --info:#2E63C8; --neutro:#647069;
+  --ok-soft:rgba(46,145,102,.10); --warn-soft:rgba(176,119,20,.10);
+  --bad-soft:rgba(194,65,63,.10); --info-soft:rgba(46,99,200,.10);
+  --neutro-soft:rgba(100,112,105,.10);
+  --grid:rgba(13,25,30,.07);
+  --sombra:0 1px 2px rgba(13,25,30,.06);
+  --sobre-accent:#FFFFFF;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  /* No Android nenhuma das fontes nomeadas existe e sobra o monospace do
+     sistema (Roboto Mono), que não tem ≤ ≥ ± − — daí os quadradinhos. As
+     famílias abaixo cobrem iOS, Android e desktop, e símbolo nenhum é
+     renderizado em mono: eles ficam na pilha sans, que tem todos. */
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,"Roboto Mono",
+         "Droid Sans Mono","Liberation Mono","Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0E10; --surface:#14181B; --surface-2:#1B2126; --hover:#232A30;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+    --text:#E9EEEC; --muted:#8C9793; --faint:#5E6A66;
+    --accent:#6C9CF5; --accent-soft:rgba(108,156,245,.16);
+    --ok:#43B581; --warn:#E3A33A; --bad:#E45B5B; --info:#6C9CF5; --neutro:#7C8A85;
+    --ok-soft:rgba(67,181,129,.15); --warn-soft:rgba(227,163,58,.15);
+    --bad-soft:rgba(228,91,91,.15); --info-soft:rgba(108,156,245,.15);
+    --neutro-soft:rgba(124,138,133,.15);
+    --grid:rgba(255,255,255,.07);
+    --sombra:0 1px 2px rgba(0,0,0,.3);
+    --sobre-accent:#08111F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0E10; --surface:#14181B; --surface-2:#1B2126; --hover:#232A30;
+  --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+  --text:#E9EEEC; --muted:#8C9793; --faint:#5E6A66;
+  --accent:#6C9CF5; --accent-soft:rgba(108,156,245,.16);
+  --ok:#43B581; --warn:#E3A33A; --bad:#E45B5B; --info:#6C9CF5; --neutro:#7C8A85;
+  --ok-soft:rgba(67,181,129,.15); --warn-soft:rgba(227,163,58,.15);
+  --bad-soft:rgba(228,91,91,.15); --info-soft:rgba(108,156,245,.15);
+  --neutro-soft:rgba(124,138,133,.15);
+  --grid:rgba(255,255,255,.07);
+  --sombra:0 1px 2px rgba(0,0,0,.3);
+  --sobre-accent:#08111F;
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit; color:inherit}
+
+/* ==========================================================================
+   Casca do aplicativo — desenhada primeiro para o celular.
+
+   O layout de navegador só entra quando há largura E mouse. Um aparelho de
+   toque reporta pointer:coarse, então nunca cai na versão de desktop, mesmo
+   que o quadro onde a página é embutida seja largo — que é exatamente o que
+   acontece dentro de um visualizador de artefato.
+   ========================================================================== */
+html,body{overflow-x:clip}
+.app{display:flex; flex-direction:column; min-height:100dvh; min-width:0}
+#vista{flex:1 1 auto; display:flex; flex-direction:column; padding:0 14px; min-width:0}
+/* Num contêiner flex o filho não encolhe abaixo do conteúdo por padrão, e um
+   nome de equipamento comprido empurraria a página de lado. */
+#vista > *{min-width:0; max-width:100%}
+#vista > .acao-fixa{margin-top:auto; max-width:none}
+
+.appbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:4px;
+  padding:calc(env(safe-area-inset-top) + 7px) 8px 8px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+  background:color-mix(in srgb, var(--bg) 84%, transparent);
+  backdrop-filter:saturate(180%) blur(16px);
+  -webkit-backdrop-filter:saturate(180%) blur(16px);
+}
+.ab-icone{
+  width:42px; height:42px; flex:0 0 auto; border-radius:13px; background:none; border:none;
+  display:grid; place-items:center; cursor:pointer; transition:background .14s;
+}
+.ab-icone:active{background:var(--hover)}
+.ab-icone:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.ab-icone svg{width:21px; height:21px; stroke:var(--text); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.ab-icone.leve svg{stroke:var(--muted); width:19px; height:19px; stroke-width:1.8}
+
+.ab-tit{flex:1 1 auto; min-width:0; padding:0 4px}
+.ab-tit b{
+  display:block; font-size:16.5px; font-weight:600; letter-spacing:-.02em; line-height:1.25;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ab-tit span{
+  display:block; font-size:11.5px; color:var(--muted); line-height:1.4;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+.glifo{
+  width:34px; height:34px; border-radius:11px; background:var(--accent-soft);
+  display:grid; place-items:center; flex:0 0 auto; margin-left:6px;
+}
+.glifo svg{width:19px; height:19px; stroke:var(--accent); fill:none; stroke-width:1.8; stroke-linecap:round}
+
+.rede{
+  display:inline-flex; align-items:center; gap:6px; border-radius:999px; flex:0 0 auto;
+  padding:4px 10px; font-size:11px; font-weight:500;
+  background:var(--warn-soft); color:var(--warn);
+}
+.rede::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+
+/* Ação principal da tela, ancorada no rodapé como num aplicativo.
+   Sticky e não fixed: o quadro que embute a página pode ser redimensionado
+   à altura do conteúdo, e aí "fixed" ancoraria no fim do documento em vez
+   de na tela. Sticky acerta nos dois casos. */
+.acao-fixa{
+  position:sticky; bottom:0; z-index:29;
+  display:flex; flex-wrap:wrap; gap:8px; margin:20px -14px 0;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:var(--bg);
+  background:color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter:saturate(180%) blur(16px);
+  -webkit-backdrop-filter:saturate(180%) blur(16px);
+}
+.acao-fixa .bt{flex:1 1 0; padding:15px 14px; border-radius:15px}
+
+/* ---------- interruptor do histórico ---------- */
+.chave{
+  display:flex; align-items:center; gap:13px; background:var(--surface);
+  border:1px solid var(--border); border-radius:16px; padding:13px 16px; margin:14px 0 4px;
+}
+.chave .cnt{flex:1 1 auto; min-width:0}
+.chave b{display:block; font-size:13.5px; font-weight:600}
+.chave p{margin:2px 0 0; font-size:12px; color:var(--muted); line-height:1.5}
+.interruptor{
+  flex:0 0 auto; width:52px; height:30px; border-radius:999px; border:1px solid var(--border-2);
+  background:var(--surface-2); cursor:pointer; padding:0; position:relative; transition:background .18s, border-color .18s;
+}
+.interruptor::after{
+  content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+  background:var(--faint); transition:transform .18s, background .18s;
+}
+.interruptor[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent)}
+.interruptor[aria-pressed="true"]::after{transform:translateX(22px); background:var(--accent)}
+.interruptor:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ---------- elementos gerais ---------- */
+h1{font-size:21px; font-weight:600; letter-spacing:-.02em; margin:0 0 4px; text-wrap:balance}
+h2{font-size:15px; font-weight:600; margin:0 0 2px}
+.sub{color:var(--muted); font-size:12.5px}
+.rotulo{font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:22px 2px 9px}
+
+.card{background:var(--surface); border:1px solid var(--border); border-radius:16px}
+.pad{padding:16px 18px}
+
+.chip{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:500; white-space:nowrap}
+.chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:0 0 auto}
+.c-conf{color:var(--ok); background:var(--ok-soft)}
+.c-nconf{color:var(--warn); background:var(--warn-soft)}
+.c-restr{color:var(--bad); background:var(--bad-soft)}
+.c-elb{color:var(--info); background:var(--info-soft)}
+.c-na{color:var(--neutro); background:var(--neutro-soft)}
+.c-pend{color:var(--neutro); background:var(--neutro-soft)}
+
+/* ---------- marcações manuais do teste ---------- */
+.marcas{display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 0}
+.marca-bt{
+  border:1px solid var(--border); background:var(--surface); border-radius:999px;
+  padding:9px 16px; font-size:12.5px; color:var(--muted); cursor:pointer;
+  transition:background .16s, border-color .16s, color .16s;
+}
+.marca-bt:hover{background:var(--hover); color:var(--text)}
+.marca-bt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.marca-bt[aria-pressed="true"][data-s="elb"]{
+  background:var(--info-soft); border-color:var(--info); color:var(--info); font-weight:600}
+.marca-bt[aria-pressed="true"][data-s="na"]{
+  background:var(--neutro-soft); border-color:var(--neutro); color:var(--neutro); font-weight:600}
+
+.marca-ativa{
+  border:1px solid var(--border); border-left-width:3px; border-radius:13px;
+  padding:14px 16px; margin:12px 0 4px; background:var(--surface);
+}
+.marca-ativa.m-elb{border-left-color:var(--info)}
+.marca-ativa.m-na{border-left-color:var(--neutro)}
+.marca-ativa b{font-size:13.5px; display:block; margin-bottom:4px}
+.marca-ativa p{margin:0 0 12px; font-size:12px; color:var(--muted); line-height:1.6; max-width:66ch}
+
+.nota-marca{font-size:11px; color:var(--info); margin:6px 0 0; font-style:italic}
+
+.bt{
+  border-radius:14px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--muted); font-size:14.5px; font-weight:500; cursor:pointer; padding:14px 18px;
+  transition:transform .08s, background .14s;
+}
+.bt:active{transform:scale(.98)}
+.bt:hover{background:var(--hover)}
+.bt.principal{background:var(--accent); border-color:transparent; color:var(--sobre-accent); font-weight:600}
+.bt.principal:hover{filter:brightness(1.08)}
+.bt.mini{padding:8px 13px; font-size:12.5px; border-radius:11px}
+.bt:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.bt:disabled{opacity:.4; cursor:default}
+
+/* ---------- parque de equipamentos ---------- */
+.busca{
+  display:flex; align-items:center; gap:10px; background:var(--surface);
+  border:1px solid var(--border); border-radius:14px; padding:0 14px; margin-bottom:12px;
+}
+.busca svg{width:16px; height:16px; stroke:var(--faint); fill:none; stroke-width:1.8; flex:0 0 auto}
+.busca input{flex:1 1 auto; background:none; border:none; padding:13px 0; font-size:14.5px; min-width:0}
+.busca input:focus{outline:none}
+.busca input::placeholder{color:var(--faint)}
+
+/* Listas no estilo de aplicativo: um cartão só, linhas separadas por
+   filete, seta de avanço e realce ao toque em vez de ao passar o mouse. */
+.lista{
+  display:block; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; overflow:hidden;
+}
+.equip{
+  width:100%; text-align:left; background:none; border:none; border-radius:0;
+  border-bottom:1px solid var(--border); padding:14px 40px 14px 16px;
+  cursor:pointer; display:block; position:relative; transition:background .12s;
+}
+.equip::after{
+  content:""; position:absolute; right:17px; top:50%; width:8px; height:8px;
+  border-right:2px solid var(--faint); border-top:2px solid var(--faint);
+  transform:translateY(-50%) rotate(45deg);
+}
+.equip:active{background:var(--hover)}
+.equip:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.equip .l1{display:flex; align-items:center; gap:8px; margin-bottom:3px; flex-wrap:wrap}
+.equip .cod{font-weight:600; font-size:15.5px; letter-spacing:-.01em}
+.equip .cli{font-size:12.5px; color:var(--muted); line-height:1.45}
+.equip .l3{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
+.progresso{flex:1 1 90px; height:5px; border-radius:3px; background:var(--surface-2); overflow:hidden; min-width:60px}
+.progresso i{display:block; height:100%; background:var(--accent); border-radius:3px; transition:width .3s}
+.equip .pct{font-size:11.5px; color:var(--faint); flex:0 0 auto}
+
+/* Linha da lista com ação de remover ao lado: o cartão continua sendo o
+   botão de avanço, e o × é um botão irmão — botão dentro de botão não
+   existe em HTML. */
+.equip-linha{display:flex; align-items:stretch; border-bottom:1px solid var(--border)}
+.equip-linha > .equip{flex:1 1 auto; min-width:0; border-bottom:none; padding-right:14px}
+.equip-linha > .equip::after{display:none}
+.apagar-t{
+  flex:0 0 auto; width:50px; background:none; border:none; border-left:1px solid var(--border);
+  color:var(--faint); font-size:19px; line-height:1; cursor:pointer;
+  display:grid; place-items:center; transition:background .12s, color .12s;
+}
+.apagar-t:hover{color:var(--bad); background:var(--hover)}
+.apagar-t:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+
+.novo{
+  width:100%; background:none; border:none; border-top:1px solid var(--border); border-radius:0;
+  padding:14px 16px; cursor:pointer; display:flex; align-items:center; gap:12px; text-align:left;
+  color:var(--muted); transition:background .12s;
+}
+.lista .novo:first-child{border-top:none}
+.novo:active{background:var(--hover)}
+.novo:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.novo .mais{
+  width:34px; height:34px; border-radius:11px; background:var(--accent-soft); color:var(--accent);
+  display:grid; place-items:center; font-size:21px; font-weight:400; line-height:1; flex:0 0 auto;
+}
+.novo b{display:block; font-size:14.5px; font-weight:600; color:var(--text)}
+.novo span{font-size:12px; line-height:1.4}
+
+.vazio-msg{color:var(--faint); font-size:13.5px; padding:22px 16px; text-align:center}
+
+/* ---------- formulário de cadastro ---------- */
+.form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(186px,1fr)); gap:12px}
+.campo-form{display:flex; flex-direction:column; gap:5px; min-width:0}
+.campo-form label{font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint)}
+.campo-form input, .campo-form select{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:11px;
+  padding:10px 13px; font-size:14px; width:100%;
+}
+.campo-form input:focus, .campo-form select:focus{outline:none; border-color:var(--accent); background:var(--surface)}
+.campo-form input:invalid{border-color:var(--bad)}
+.campo-form .dica{font-size:11px; color:var(--faint)}
+
+/* Campo de texto de uma linha: a justificativa de uma marcação, o nome de uma
+   estação de medida. Mesmo desenho dos campos de cadastro. */
+input.txt, select.txt{
+  width:100%; min-width:0; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:11px; padding:10px 13px;
+}
+input.txt:focus, select.txt:focus{outline:none; border-color:var(--accent); background:var(--surface)}
+input.txt::placeholder{color:var(--faint)}
+
+.bloco-transd{
+  border:1px solid var(--border); border-radius:14px; padding:13px 15px 15px;
+  background:var(--surface-2); margin-bottom:10px;
+}
+.bloco-transd .cabeca{display:flex; align-items:center; gap:10px; margin-bottom:11px}
+.bloco-transd .slot{
+  font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent);
+  background:var(--accent-soft); border-radius:8px; padding:3px 9px;
+}
+.bloco-transd .cabeca .nome{font-size:12.5px; color:var(--muted); flex:1 1 auto; min-width:0}
+.tirar{
+  width:32px; height:32px; border-radius:9px; border:1px solid var(--border); background:var(--surface);
+  color:var(--faint); cursor:pointer; display:grid; place-items:center; font-size:17px; line-height:1; flex:0 0 auto;
+}
+.tirar:hover:not(:disabled){color:var(--bad); border-color:var(--bad)}
+.tirar:disabled{opacity:.35; cursor:default}
+
+/* ---------- técnica fixa ---------- */
+.tecnica{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:11px 20px}
+.tecnica div span{display:block; font-size:10px; color:var(--faint); letter-spacing:.05em; text-transform:uppercase}
+.tecnica div b{font-size:13.5px; font-weight:500}
+
+.resumo{display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:9px; margin-bottom:6px}
+.res-item{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px}
+.res-item .n{font-size:22px; font-weight:600; letter-spacing:-.02em; line-height:1.15}
+.res-item .r{font-size:11px; color:var(--muted); margin-top:1px}
+
+.grupo-tit{display:flex; align-items:baseline; gap:9px; margin:20px 2px 8px}
+.grupo-tit h2{font-size:13px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--faint)}
+.grupo-tit span{font-size:11.5px; color:var(--faint)}
+
+.teste-lista{
+  display:block; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; overflow:hidden;
+}
+.teste{
+  width:100%; text-align:left; background:none; border:none; border-radius:0;
+  border-bottom:1px solid var(--border); padding:13px 38px 13px 16px;
+  cursor:pointer; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  position:relative; transition:background .12s;
+}
+.teste:last-child{border-bottom:none}
+.teste::after{
+  content:""; position:absolute; right:16px; top:50%; width:7px; height:7px;
+  border-right:2px solid var(--faint); border-top:2px solid var(--faint);
+  transform:translateY(-50%) rotate(45deg);
+}
+.teste:active{background:var(--hover)}
+.teste:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.teste .corpo{flex:1 1 55%; min-width:0}
+.teste .nome{font-size:14.5px; font-weight:500; line-height:1.35}
+.teste .meta{font-size:11.5px; color:var(--faint); margin-top:2px}
+/* Sem a família mono: este bloco carrega ≤ ± % junto com os números, e a
+   pilha sans tem todos os glifos em qualquer sistema. */
+/* Duas alturas: situação e nome em cima, valor e tolerância embaixo. Sem a
+   família mono, porque este bloco carrega ≤ ± % junto com os números e a
+   pilha sans tem todos os glifos em qualquer sistema. */
+.teste .valor{
+  font-size:13.5px; font-weight:500; flex:1 1 100%; font-variant-numeric:tabular-nums;
+  padding-top:8px; margin-top:2px; border-top:1px solid var(--border); line-height:1.45;
+}
+.teste .valor small{color:var(--faint); font-weight:400; font-size:11.5px; margin-left:8px}
+
+/* ---------- coleta ---------- */
+.aquis{display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 16px}
+.aq{border:1px solid var(--border); background:var(--surface); border-radius:12px; padding:8px 13px; min-width:92px}
+.aq span{display:block; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
+.aq input{
+  background:transparent; border:none; padding:0; width:100%; font-size:14px; font-weight:600;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+}
+.aq input:focus{outline:none; color:var(--accent)}
+.aq input::placeholder{color:var(--faint); font-weight:400}
+
+.campos-num{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-bottom:6px}
+.campo-num{background:var(--surface); border:1px solid var(--border); border-radius:15px; padding:13px 16px}
+.campo-num label{display:block; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); margin-bottom:4px}
+.campo-num .linha{display:flex; align-items:baseline; gap:8px}
+.campo-num input{
+  background:transparent; border:none; padding:0; flex:1 1 auto; min-width:0;
+  font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:30px; font-weight:600; letter-spacing:-.03em;
+}
+.campo-num input:focus{outline:none; color:var(--accent)}
+.campo-num input::placeholder{color:var(--faint); font-weight:500}
+.campo-num .un{font-size:14px; color:var(--muted); font-weight:500; flex:0 0 auto}
+.campo-num.ctx{background:var(--surface-2)}
+.campo-num.ctx input{font-size:20px}
+
+.opcoes{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px; margin-bottom:14px}
+.opcao{
+  border:1px solid var(--border); background:var(--surface-2); border-radius:15px; padding:16px 14px;
+  cursor:pointer; text-align:left; font-size:14px; font-weight:500; color:var(--muted); transition:all .16s;
+}
+.opcao:hover{background:var(--hover)}
+.opcao[aria-pressed="true"][data-s="conf"]{background:var(--ok-soft); border-color:var(--ok); color:var(--ok); font-weight:600}
+.opcao[aria-pressed="true"][data-s="nconf"]{background:var(--warn-soft); border-color:var(--warn); color:var(--warn); font-weight:600}
+.opcao small{display:block; font-size:11px; font-weight:400; color:var(--faint); margin-top:3px; line-height:1.4}
+
+.sn{display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden}
+.sn button{background:var(--surface-2); border:none; padding:5px 13px; font-size:12px; cursor:pointer; color:var(--muted)}
+.sn button:hover{background:var(--hover)}
+.sn button[aria-pressed="true"]{background:var(--accent-soft); color:var(--accent); font-weight:600}
+
+/* --- vistoria: um item por linha, com o julgamento à direita ------------
+   Em campo se percorre a lista olhando o equipamento, não a tela. Por isso o
+   nome do item vem antes e ocupa a linha inteira quando é longo, e o par de
+   botões fica sempre no mesmo lugar. */
+.vist-lista{display:flex; flex-direction:column; gap:8px}
+.vist-item{
+  background:var(--surface); border:1px solid var(--border); border-radius:15px;
+  padding:13px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+}
+.vist-item.nc{border-color:var(--warn); background:var(--warn-soft)}
+.vist-item .nome{flex:1 1 190px; font-size:14px; line-height:1.4}
+.vist-item .sn{flex:0 0 auto}
+.vist-item textarea.obs{flex:1 1 100%; min-height:52px; margin-top:2px}
+
+textarea.obs{
+  width:100%; background:var(--surface); border:1px solid var(--border); border-radius:13px;
+  padding:12px 14px; font-size:13.5px; resize:vertical; min-height:66px;
+}
+textarea.obs:focus{outline:none; border-color:var(--accent)}
+table input.cel{
+  width:100%; max-width:96px; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:9px; padding:5px 9px; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:13.5px; text-align:right;
+}
+table input.cel:focus{outline:none; border-color:var(--accent)}
+
+/* ---------- painel de linha de base ---------- */
+.base-painel{
+  border:1px solid var(--border); border-radius:16px; padding:15px 17px; margin:16px 0 4px;
+  background:var(--surface); display:grid; gap:14px; grid-template-columns:minmax(0,1fr) minmax(0,240px);
+  align-items:center;
+}
+.base-painel.sem{grid-template-columns:1fr; border-style:dashed}
+.base-painel h3{font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:0 0 9px}
+.base-nums{display:flex; gap:22px; flex-wrap:wrap}
+.base-nums div span{display:block; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
+.base-nums div b{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:19px; font-weight:600; letter-spacing:-.02em}
+.base-nota{font-size:12px; color:var(--muted); margin:9px 0 0; line-height:1.55; max-width:60ch}
+.spark{width:100%; height:auto; display:block; overflow:visible}
+.spark-leg{display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-top:3px; font-family:var(--mono)}
+
+.rodape-acoes{display:flex; gap:8px; flex-wrap:wrap; margin-top:18px}
+.rodape-acoes .bt{flex:1 1 170px}
+
+/* ---------- relatório ---------- */
+.laudo{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:32px 36px; margin-top:4px}
+.laudo h1{font-size:19px; margin:0 0 3px}
+.laudo .norma{font-size:12.5px; color:var(--muted); margin-bottom:24px}
+/* A seção de resultados ocupa várias folhas: quem não pode partir no meio é o
+   bloco de um ensaio, não a seção inteira. */
+.laudo section{margin-bottom:26px}
+/* Título de seção na caixa em que se escreve — "Cadastro", "Resultados:" —
+   e não como etiqueta em caixa alta. */
+.laudo h3{
+  font-size:14.5px; font-weight:700; letter-spacing:-.01em; color:var(--text);
+  margin:0 0 11px; padding-bottom:7px; border-bottom:1px solid var(--border-2);
+}
+.laudo h4{font-size:13.5px; font-weight:600; margin:20px 0 7px}
+.laudo h4 .num{color:var(--faint); font-family:var(--mono); font-weight:500; margin-right:7px}
+
+/* Título do bloco de resultados: é a chave de leitura do relatório — quem está
+   com o documento na mão precisa achar de longe onde um bloco termina e o outro
+   começa. Por isso sai maior e em negrito, e não como etiqueta de seção. */
+.laudo h3.sec-tit{
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:0 9px;
+  font-size:15px; font-weight:600; letter-spacing:-.01em; text-transform:none;
+  color:var(--muted); margin:0 0 14px; padding-bottom:9px;
+  border-bottom:2px solid var(--border-2);
+}
+.laudo h3.sec-tit b{font-size:18px; font-weight:700; color:var(--text)}
+.laudo h3.sec-tit .slot{
+  font-size:11.5px; font-weight:600; color:var(--accent); background:var(--accent-soft);
+  border-radius:7px; padding:2px 8px; letter-spacing:0;
+}
+.dl{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:11px 22px}
+.dl div span{display:block; font-size:10.5px; color:var(--faint); letter-spacing:.04em; text-transform:uppercase}
+.dl div b{font-size:13px; font-weight:500}
+
+table{border-collapse:collapse; width:100%; font-size:12.5px}
+th,td{padding:8px 10px; text-align:left; vertical-align:middle}
+th{font-size:10px; font-weight:600; color:var(--faint); letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid var(--border-2)}
+td{border-bottom:1px solid var(--border)}
+td.num,th.num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.tab-scroll{overflow-x:auto; margin:0 -4px}
+/* No laudo o cabeçalho da tabela sai na caixa corrente — "Borda
+   Nítida", não "BORDA NÍTIDA". A caixa alta fica para as telas de coleta. */
+.laudo th{text-transform:none; font-size:11px; letter-spacing:0; color:var(--muted)}
+/* Cabeçalho longo quebra em duas linhas, como no relatório impresso. Sem isso a
+   tabela não cabe na folha e empurra a última coluna para fora. */
+.laudo th.num{white-space:normal}
+.aq-linha{font-family:var(--mono); font-size:11.5px; color:var(--muted); margin:0 0 7px}
+
+.parecer{border-left:3px solid var(--accent); padding:12px 0 12px 16px; margin-top:6px}
+.parecer b{display:block; font-size:14px; margin-bottom:4px}
+.parecer p{margin:0; font-size:13px; color:var(--muted); line-height:1.6}
+.parecer.conf{border-color:var(--ok)}
+.parecer.nconf{border-color:var(--warn)}
+
+.nc{display:flex; gap:12px; align-items:flex-start; padding:11px 0; border-bottom:1px solid var(--border)}
+.nc:last-child{border-bottom:none}
+.nc .cnt b{font-size:13px; font-weight:500; display:block}
+.nc .cnt p{margin:3px 0 0; font-size:12px; color:var(--muted); line-height:1.5}
+
+.assinaturas{display:grid; grid-template-columns:1fr 1fr; gap:34px; margin-top:36px}
+.assin{border-top:1px solid var(--border-2); padding-top:8px; font-size:11.5px; color:var(--muted)}
+.assin b{display:block; font-size:13px; color:var(--text); font-weight:500}
+
+.aviso-demo{
+  display:inline-flex; align-items:center; gap:7px; font-size:11.5px; color:var(--warn);
+  background:var(--warn-soft); border-radius:999px; padding:4px 12px; margin-bottom:14px;
+}
+.aviso-demo::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+
+/* ---------- capa e aparato normativo do relatório ---------- */
+.capa{text-align:center; padding:26px 20px 30px; border-bottom:1px solid var(--border); margin-bottom:26px}
+.capa .logo{height:44px; margin:0 auto 28px; display:grid; place-items:center}
+.capa .logo svg{height:34px; width:auto; stroke:var(--accent); fill:none; stroke-width:1.7;
+                stroke-linecap:round; stroke-linejoin:round}
+.capa-num{font-family:var(--mono); font-size:13px; color:var(--muted)}
+.capa-cat{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-top:4px; font-weight:600}
+.capa h1{font-size:23px; margin:20px 0 0; letter-spacing:-.02em}
+.capa-eq{font-size:15.5px; font-weight:600; margin-top:20px; line-height:1.5}
+.capa-eq span{display:block; font-family:var(--mono); font-size:12px; font-weight:400; color:var(--muted)}
+.capa-cli{font-size:14px; color:var(--muted); margin-top:14px}
+.capa-ano{font-size:26px; font-weight:600; color:var(--faint); margin:20px 0 26px; letter-spacing:.04em}
+.capa-rod{font-size:10.5px; color:var(--muted); line-height:1.75; border-top:1px solid var(--border); padding-top:16px; max-width:56ch; margin:0 auto}
+.capa-rod b{color:var(--text); font-weight:600}
+
+.cabeca-doc{display:flex; align-items:center; gap:14px; padding-bottom:12px; border-bottom:1px solid var(--border); margin-bottom:20px}
+.cabeca-doc .marca{flex:0 0 auto; display:grid; place-items:center}
+.cabeca-doc .marca svg{height:17px; width:auto; stroke:var(--accent); fill:none; stroke-width:1.9;
+                       stroke-linecap:round; stroke-linejoin:round}
+.cabeca-doc .l{flex:1 1 auto; min-width:0; font-size:10.5px; color:var(--muted); line-height:1.5}
+.cabeca-doc .l b{color:var(--text); font-size:12px; display:block; font-weight:600}
+
+/* Centralizada na coluna de texto, como no relatório impresso. */
+.tol-box{border:1px solid var(--border-2); border-radius:9px; overflow:hidden; margin:11px auto 2px; max-width:60ch}
+.tol-box .cab{
+  background:var(--surface-2); padding:5px 12px; font-size:9.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; text-align:center;
+  border-bottom:1px solid var(--border-2); color:var(--text);
+}
+.tol-box .val{padding:9px 14px; font-size:12px; text-align:center; line-height:1.6; color:var(--muted)}
+
+.teste-desc{margin:18px 0 0; break-inside:avoid}
+.teste-desc h5{font-size:13.5px; font-weight:600; margin:0 0 5px; display:flex; gap:8px}
+.teste-desc h5::before{content:"•"; color:var(--accent)}
+.teste-desc p{margin:0; font-size:12.5px; color:var(--muted); line-height:1.7; text-align:justify}
+.teste-desc p + p{margin-top:9px}
+
+.laudo ul{margin:0; padding-left:20px; font-size:12.5px; color:var(--muted); line-height:1.7}
+.laudo ul li{margin-bottom:4px}
+.defin{font-size:12.5px; color:var(--muted); line-height:1.7}
+.defin b{color:var(--text)}
+.defin p{margin:0 0 11px; text-align:justify}
+
+.nota-icp{
+  font-size:9.5px; color:var(--faint); line-height:1.65; margin-top:26px;
+  padding-top:12px; border-top:1px solid var(--border); text-align:justify;
+}
+
+.comparativo{width:100%; font-size:13px}
+.comparativo th:first-child{width:30%}
+.comparativo td{vertical-align:top; line-height:1.5}
+.prosa{max-width:68ch; font-size:13.5px; color:var(--muted); line-height:1.65}
+.prosa strong{color:var(--text); font-weight:600}
+.prosa p{margin:0 0 12px}
+
+/* No laudo o texto ocupa a mesma largura das tabelas e é justificado, como no
+   relatório impresso: medida curta ao lado de tabela larga faz a folha parecer
+   torta. Fora do laudo a coluna estreita continua valendo — lá é leitura de
+   tela, não documento. */
+.laudo .prosa{max-width:none; text-align:justify}
+
+@keyframes sobe{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+.anima{animation:sobe .32s cubic-bezier(.22,.61,.36,1) backwards}
+@media (prefers-reduced-motion:reduce){.anima{animation:none} *{transition:none !important}}
+
+/* ==========================================================================
+   Ajustes finos do aparelho de toque
+   Tudo acima já é o desenho de celular. Aqui ficam só as correções que
+   dependem do meio: o iOS amplia a página sozinho ao focar um campo com
+   fonte menor que 16px, e tabela de dados precisa rolar em vez de espremer.
+   ========================================================================== */
+input, select, textarea,
+.busca input, .campo-form input, .campo-form select,
+table input.cel, .aq input, textarea.obs, input.txt{font-size:16px}
+
+.tab-scroll{-webkit-overflow-scrolling:touch; margin:0 -14px; padding:0 14px}
+.tab-scroll table{min-width:440px}
+/* No laudo a tabela alinha com o texto: sem sangria, senão o filete da tabela
+   sai mais largo que o resto da folha. */
+.laudo .tab-scroll{margin:0; padding:0}
+
+/* Corpo de texto um ponto maior no dedo: o que se lê de pé numa sala de
+   exame não é o que se lê sentado na frente de um monitor. */
+@media (hover:none) and (pointer:coarse){
+  body{font-size:16px}
+  .sub{font-size:13px}
+  .chip{font-size:12px; padding:4px 11px}
+  .rotulo{font-size:11.5px}
+  .equip .cod{font-size:16px}
+  .equip .cli{font-size:13px}
+  .equip .pct{font-size:12px}
+  .teste .nome{font-size:15px}
+  .teste .meta{font-size:12px}
+  .teste .valor{font-size:14px}
+  .teste .valor small{font-size:12px}
+  .res-item .n{font-size:23px}
+  .res-item .r{font-size:11.5px}
+  .base-nota, .chave p{font-size:12.5px}
+  .novo b{font-size:15px}
+  .novo span{font-size:12.5px}
+  .prosa{font-size:14px}
+  .laudo{font-size:14px}
+  .laudo .dl div b{font-size:13.5px}
+  .teste-desc p, .defin, .laudo ul{font-size:13px}
+  th,td{font-size:13px}
+  .tol-box .val{font-size:12.5px}
+}
+
+/* Telas muito estreitas */
+@media (max-width:390px){
+  #vista{padding:0 11px}
+  .tab-scroll{margin:0 -11px; padding:0 11px}
+  .laudo{padding:16px 12px}
+  .aq{flex:1 1 100%}
+  .base-nums{gap:12px}
+  .base-nums div b{font-size:17px}
+  .ab-tit b{font-size:15.5px}
+}
+
+/* ==========================================================================
+   Navegador de mesa
+   Só entra com largura E mouse. Um celular reporta pointer:coarse e
+   hover:none, então continua no desenho de aplicativo mesmo que o quadro
+   onde a página está embutida seja largo.
+   ========================================================================== */
+@media (min-width:820px) and (hover:hover) and (pointer:fine){
+  .app{max-width:980px; margin:0 auto; padding:0 0 56px; min-height:0}
+  #vista{padding:0 16px}
+
+  .appbar{padding:12px 10px 10px; gap:6px}
+  .ab-tit b{font-size:15px}
+
+  /* Sem barra ancorada no rodapé: as ações voltam para o fim do conteúdo. */
+  .acao-fixa{
+    position:static; padding:0; margin:22px 0 0; border-top:none;
+    background:none; backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  .acao-fixa .bt{flex:1 1 170px}
+
+  input, select, textarea,
+  .busca input, .campo-form input, .campo-form select,
+  .aq input, textarea.obs, input.txt{font-size:14px}
+  table input.cel{font-size:13.5px; padding:5px 9px}
+  .campo-form input, .campo-form select{padding:10px 13px}
+  .sn button{padding:5px 13px; font-size:12px}
+
+  /* Cartões soltos, realce ao passar o mouse, sem seta de avanço. */
+  .lista{background:none; border:none; border-radius:0; display:flex; flex-direction:column; gap:10px}
+  .equip{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:15px 17px;
+  }
+  .equip::after{display:none}
+  .equip:hover{background:var(--hover); border-color:var(--border-2)}
+  .equip .pct{min-width:96px; text-align:right}
+
+  /* Cartão solto e o × como controle separado ao lado. */
+  .equip-linha{border-bottom:none; gap:8px}
+  .equip-linha > .equip{padding-right:17px}
+  .apagar-t{
+    width:52px; border:1px solid var(--border); border-radius:16px; background:var(--surface);
+  }
+  .apagar-t:hover{border-color:var(--bad)}
+
+  .novo{
+    background:var(--surface-2); border:1px dashed var(--border-2); border-radius:16px;
+    padding:16px 17px;
+  }
+  .novo:hover{background:var(--hover); border-color:var(--accent); color:var(--text)}
+
+  .teste-lista{background:none; border:none; border-radius:0; display:flex; flex-direction:column; gap:6px}
+  .teste{
+    background:var(--surface); border:1px solid var(--border); border-radius:13px;
+    padding:12px 15px; flex-wrap:nowrap;
+  }
+  .teste::after{display:none}
+  .teste:hover{background:var(--hover); border-color:var(--border-2)}
+  .teste .corpo{flex:1 1 auto}
+  .teste .valor{
+    flex:0 1 auto; max-width:46%; text-align:right; white-space:nowrap;
+    padding-top:0; margin-top:0; border-top:none; overflow:hidden; text-overflow:ellipsis;
+  }
+  .teste .valor small{display:block; margin-left:0; font-size:10.5px}
+
+  .tab-scroll{margin:0 -4px; padding:0}
+  .tab-scroll table{min-width:0}
+  .laudo{padding:32px 36px}
+  .laudo .tab-scroll{margin:0; padding:0}
+
+  .base-painel{grid-template-columns:minmax(0,1fr) minmax(0,240px)}
+  .assinaturas{grid-template-columns:1fr 1fr}
+  .capa{padding:26px 20px 30px}
+  .capa .logo{height:44px; margin-bottom:28px}
+  .capa h1{font-size:23px}
+  .capa-ano{font-size:26px}
+  .marca-bt{flex:0 1 auto}
+  .campos-num{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .opcoes{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+  .teste-desc p, .defin p{text-align:justify}
+}
+
+/* Impressão: o relatório vai para papel, então a paleta clara é forçada
+   independentemente do tema em que a tela estava. */
+@media print{
+  @page{size:A4; margin:14mm 13mm}
+  /* O guarda do tema escuro é `:root:not([data-theme="light"])`, mais
+     específico que `:root`: sem repeti-lo aqui, um aparelho com o sistema em
+     modo escuro imprimiria o laudo com fundo escuro. */
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"]{
+    --bg:#fff; --surface:#fff; --surface-2:#fff; --hover:#fff;
+    --border:#d8dedd; --border-2:#a8b2b0;
+    --text:#111; --muted:#4a5350; --faint:#6d7674;
+    --accent:#1e4fa8; --ok:#1c6b45; --warn:#8a5a06; --bad:#9c2b2a; --info:#1e4fa8; --neutro:#4a5350;
+    --ok-soft:#eaf5ef; --warn-soft:#fbf3e3; --bad-soft:#fbecec; --info-soft:#eaf0fb; --neutro-soft:#f0f2f2;
+    --accent-soft:#eaf0fb;
+    --sombra:none;
+  }
+  body{background:#fff; color:#111; font-size:10.5pt}
+  .appbar,.acao-fixa,.rodape-acoes,.aviso-demo,.chave{display:none !important}
+  .app{padding:0}
+  #vista{padding:0}
+  .laudo{border:none; padding:0; margin:0}
+  .anima{animation:none}
+
+  /* Nada de rolagem no papel: uma caixa com overflow não se parte entre folhas
+     e o que passa da altura da página seria cortado. Na folha a tabela cabe,
+     então ela volta a ser um bloco comum. */
+  .tab-scroll{overflow:visible; margin:0; padding:0}
+  .tab-scroll table{min-width:0}
+  /* Tabela longa repete o cabeçalho na folha seguinte e não parte linha. */
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  /* O que precisa sair inteiro é a unidade de leitura, não a seção — uma seção
+     de resultados tem vários ensaios e ocupa várias folhas. */
+  .bloco-res, .teste-desc, .tol-box, .dl, .cabeca-doc,
+  .parecer, .nc, .assin{break-inside:avoid}
+  .aq-linha{break-after:avoid}
+  /* A capa ocupa a folha inteira, como no relatório impresso. */
+  .capa{min-height:88vh; display:flex; flex-direction:column; justify-content:center;
+        border-bottom:none; break-after:page; margin-bottom:0}
+  .capa-rod{margin-top:auto}
+  .cabeca-doc{break-after:avoid}
+  .laudo h3{break-after:avoid}
+  .laudo h4{break-after:avoid}
+  /* Cada bloco de resultados abre uma folha, como no relatório impresso. */
+  .laudo section.bloco{break-before:page}
+}
+
+/* ==========================================================================
+   Específico dos coletores de raios X
+   Tudo acima é o sistema comum aos três coletores. Daqui para baixo ficam só
+   os elementos que a coleta com tubo de raios X tem e a de ultrassom não:
+   teclado numérico, visor, estações de medida e a fila de envio.
+   ========================================================================== */
+
+/* Resultado que a barra de incerteza não permite afirmar nem negar. */
+.c-lim{color:var(--info); background:var(--info-soft)}
+
+.pills{display:flex; gap:7px; flex-wrap:wrap; margin:2px 0 14px; overflow-x:auto; padding-bottom:2px}
+.pill{
+  flex:0 0 auto; background:transparent; border:1px solid var(--border); border-radius:999px;
+  padding:7px 14px; font-size:12.5px; color:var(--muted); cursor:pointer; transition:all .16s;
+}
+.pill:hover{background:var(--hover); color:var(--text)}
+.pill[aria-pressed="true"]{background:var(--text); color:var(--bg); border-color:transparent; font-weight:500}
+.pill:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.contexto{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:12px}
+.limites{display:flex; gap:16px; flex-wrap:wrap; margin-top:9px}
+.lim-item span{display:block; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint)}
+.lim-item b{font-size:12.5px; font-weight:500}
+.ajuda{font-size:12.5px; color:var(--muted); line-height:1.55; margin:10px 0 0; max-width:70ch}
+
+/* Parâmetros do próprio ensaio — kVp, mAs, distância, tipo de gerador. */
+.campos{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px}
+.campo{
+  border:1px solid var(--border); background:var(--surface); border-radius:12px; padding:8px 13px;
+  cursor:pointer; text-align:left; transition:all .14s; min-width:96px;
+}
+.campo:hover{background:var(--hover)}
+.campo[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-soft)}
+.campo:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.campo span{display:block; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
+.campo b{font-size:14px; font-weight:600}
+.campo select{
+  background:transparent; border:none; font-size:14px; font-weight:600;
+  padding:0; margin:0; cursor:pointer; max-width:150px;
+}
+
+.estacoes{display:flex; gap:7px; margin-bottom:12px; overflow-x:auto; padding-bottom:3px; scrollbar-width:thin}
+.est{
+  flex:0 0 auto; min-width:84px; border:1px solid var(--border); background:var(--surface);
+  border-radius:13px; padding:9px 10px; text-align:center; cursor:pointer; transition:all .16s;
+}
+.est b{display:block; font-size:15px; font-weight:600; letter-spacing:-.01em; line-height:1.25}
+.est span{font-size:10.5px; color:var(--muted)}
+.est.cheia{background:var(--ok-soft); border-color:transparent}
+.est.cheia b,.est.cheia span{color:var(--ok)}
+.est.atual{border-color:var(--accent); background:var(--accent-soft)}
+.est.atual b,.est.atual span{color:var(--accent)}
+.est:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.visor-box{background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:16px 18px 14px; margin-bottom:12px}
+.visor-rot{font-size:12px; color:var(--muted); text-align:center; margin-bottom:2px; min-height:18px}
+.visor{display:flex; align-items:baseline; justify-content:center; gap:9px; padding:4px 0 12px; border-bottom:1px solid var(--border)}
+.visor .v{font-size:50px; font-weight:600; letter-spacing:-.04em; line-height:1; min-width:2ch}
+.visor .v.vazio{color:var(--faint)}
+.visor .u{font-size:17px; color:var(--muted); font-weight:500}
+.previa{display:flex; align-items:center; justify-content:center; gap:11px; padding:12px 0 2px; min-height:42px; flex-wrap:wrap}
+.previa .d{font-size:18px; font-weight:600; font-variant-numeric:tabular-nums}
+.previa .txt{font-size:12.5px; color:var(--faint)}
+
+.teclado{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px}
+.tecla{
+  height:60px; border:1px solid var(--border); background:var(--surface-2);
+  border-radius:15px; font-family:var(--mono); font-size:24px; font-weight:500;
+  cursor:pointer; transition:transform .08s, background .14s; touch-action:manipulation;
+}
+.tecla:active{transform:scale(.95); background:var(--hover)}
+.tecla:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tecla.aux{font-size:15px; font-family:var(--sans); color:var(--muted)}
+.acoes{display:grid; grid-template-columns:1fr 1.8fr; gap:8px; margin-bottom:16px}
+.acoes .bt{padding:17px 12px}
+
+.opcao[aria-pressed="true"][data-s="restr"]{background:var(--bad-soft); border-color:var(--bad); color:var(--bad); font-weight:600}
+.opcao[aria-pressed="true"][data-s="na"]{background:var(--neutro-soft); border-color:var(--neutro); color:var(--neutro); font-weight:600}
+
+.registros{display:flex; flex-direction:column; gap:6px}
+.reg{display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px}
+.reg .e{font-size:12px; color:var(--muted); min-width:78px}
+.reg .v{font-size:14.5px; font-weight:500; flex:1 1 auto; font-variant-numeric:tabular-nums}
+.reg .x{background:none; border:none; color:var(--faint); cursor:pointer; font-size:17px; padding:2px 7px; line-height:1}
+.reg .x:hover{color:var(--bad)}
+
+/* Gráfico de desvios do relatório: SVG puro, para abrir e imprimir sem rede. */
+.grafico-svg{width:100%; height:auto; display:block; margin:6px 0 2px; overflow:visible}
+.legenda{display:flex; gap:15px; flex-wrap:wrap; font-size:11px; color:var(--muted); margin-top:6px}
+.legenda i{display:inline-block; width:14px; height:2px; border-radius:2px; vertical-align:middle; margin-right:5px}
+
+.fila{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+.fila-item{display:flex; align-items:center; gap:11px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px; font-size:13px}
+.fila-item .t{font-size:11.5px; color:var(--faint); margin-left:auto; white-space:nowrap}
+pre.payload{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:13px; padding:14px 16px;
+  font-family:var(--mono); font-size:11.5px; color:var(--muted);
+  overflow-x:auto; line-height:1.6; margin:10px 0 0;
+}
+
+@media (hover:none) and (pointer:coarse){
+  .visor .v{font-size:46px}
+  .ajuda{font-size:13.5px}
+}
+@media (max-width:390px){
+  .tecla{height:54px; font-size:22px}
+  .acoes{grid-template-columns:1fr 1.5fr}
+}
+@media print{
+  .pills,.teclado,.acoes,.visor-box,.fila,pre.payload{display:none !important}
+}
+
+/* Linha de fechamento do ensaio: consolida as estações de medida numa só
+   leitura, que é o número que a norma compara com a tolerância. */
+.laudo tbody tr.total td{font-weight:600; background:var(--surface-2)}
+.laudo tbody tr.total td:first-child{color:var(--text)}
+
+/* A caixa de limites do relatório carrega dois pares — tolerância e nível de
+   restrição — no mesmo desenho de duas colunas do coletor de ultrassom. */
+.tol-box .cab + .val + .cab{border-top:1px solid var(--border-2)}
+
+/* Editor das estações de medida: quais pontos de kV, mAs, tempo ou espessura
+   este equipamento vai testar. Fica dentro do próprio ensaio, porque é ali que
+   se descobre que a técnica do serviço não é a do rol. */
+.rotulo-linha{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:22px 0 9px}
+.rotulo-linha .rotulo{margin:0; flex:1 1 auto}
+.rotulo-linha .bt{flex:0 0 auto; margin:0}
+
+.est-edit{
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:13px 15px; margin-bottom:12px;
+}
+.est-linha{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+.est-linha input.txt{flex:2 1 130px}
+.est-linha input.txt.n{flex:1 1 84px; text-align:right; font-variant-numeric:tabular-nums}
+.est-linha select.txt{flex:1 1 130px}
+.est-linha .un{flex:0 0 auto; font-size:12px; color:var(--muted); min-width:34px}
+.est-acoes{display:flex; gap:8px; flex-wrap:wrap; margin-top:11px}
+
+@media (max-width:390px){
+  .est-linha{flex-wrap:wrap}
+  .est-linha input.txt{flex:1 1 100%}
+  .est-linha input.txt.n{flex:1 1 96px}
+}
+</style>
+<style>
+/* --- sensação de aplicativo (Parte 3) ------------------------------------
+   A casca e este coletor são documentos separados; sem a transição abaixo,
+   cada ida e volta pisca em branco. Onde o navegador não a suporta — iOS,
+   hoje — nada acontece e fica como era. */
+@view-transition { navigation: auto; }
+
+html{
+  /* O fundo precisa estar no html: é ele que o navegador pinta durante a
+     navegação, e era daí que vinha o branco. */
+  background:var(--bg);
+  /* Sem puxar-para-recarregar: esbarrar nisso no meio de uma leitura
+     recarregaria a página dentro da sala de exame. */
+  overscroll-behavior:none;
+  touch-action:manipulation;
+}
+body{ -webkit-tap-highlight-color:transparent; }
+
+/* Interface não se seleciona; o laudo e os campos, sim — número de série e
+   resultado precisam poder ser copiados. */
+#topo, .acao-fixa, .ab-icone, .glifo, .opcao, .tecla, .bt{
+  -webkit-user-select:none; user-select:none;
+}
+
+/* --- aviso de versão nova ------------------------------------------------
+   O service worker instala a versão nova e fica esperando. Sem este aviso o
+   usuário não tem como saber que ela existe nem como aceitá-la, e o aparelho
+   serve o pacote anterior indefinidamente. */
+.aviso{
+  position:fixed; left:16px; right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom)); z-index:40;
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:11px;
+  background:var(--text); color:var(--bg);
+  box-shadow:0 6px 24px rgba(0,0,0,.28); font-size:12.5px;
+}
+.aviso[hidden]{display:none!important}
+.aviso button{
+  margin-left:auto; flex:none; padding:6px 12px; border:0; border-radius:7px;
+  background:var(--accent); color:#fff; font:600 12px/1 var(--sans); cursor:pointer;
+}
+@media (min-width:640px){ .aviso{left:auto; right:24px; max-width:380px} }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="appbar" id="topo"></header>
+  <main id="vista"></main>
+</div>
+
+<div class="aviso" id="aviso" hidden>
+  <span>Há uma versão mais recente do app.</span>
+  <button id="btAtualizar">Atualizar</button>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   1. Base normativa — IN nº 95, de 27 de maio de 2021 (ANVISA)
+   ========================================================================== */
+
+/* Anexo II — camadas semirredutoras mínimas, em mm de alumínio, por tensão
+   nominal do tubo.
+
+   O degrau entre 70 e 71 kVp é proposital: 1,5 salta para 2,1 mm Al. Não é
+   erro de transcrição — é a norma separando o equipamento de até 70 kV do de
+   mais de 70 kV. A interpolação abaixo é linear entre linhas vizinhas, então
+   dentro daquela janela de 1 kVp ela atravessa o degrau; é a leitura
+   conservadora, e equipamento intraoral com tensão nominal ali no meio não
+   existe. */
+const ANEXO_II = {60:1.3, 70:1.5, 71:2.1, 80:2.3, 90:2.5};
+
+function csrMinima(kvp){
+  if (!kvp) return null;
+  const chaves = Object.keys(ANEXO_II).map(Number).sort((a,b)=>a-b);
+  if (kvp <= chaves[0]) return ANEXO_II[chaves[0]];
+  if (kvp >= chaves[chaves.length-1]) return ANEXO_II[chaves[chaves.length-1]];
+  for (let i=0;i<chaves.length-1;i++){
+    const a=chaves[i], b=chaves[i+1];
+    if (kvp>=a && kvp<=b){
+      const va=ANEXO_II[a], vb=ANEXO_II[b];
+      return va + (vb-va)*(kvp-a)/(b-a);
+    }
+  }
+  return null;
+}
+
+/* ==========================================================================
+   2. Instrumentação de referência (rastreabilidade metrológica)
+   ========================================================================== */
+
+const INSTRUMENTOS = {
+  multimetro:{nome:'Multímetro não invasivo de kV/tempo', modelo:'RaySafe X2 R/F', serie:'SN X2-4419',
+              cert:'LCI/IPEN 24-0871', validade:'14/03/2027', rastreab:'Rede Brasileira de Calibração'},
+  camara:{nome:'Câmara de ionização + eletrômetro', modelo:'Radcal 10X6-6 / Accu-Gold', serie:'SN 6-2210',
+          cert:'LCI/IPEN 25-0233', validade:'02/09/2026', rastreab:'Rede Brasileira de Calibração'},
+  trena:{nome:'Trena metálica classe II e paquímetro', modelo:'Starrett KTS-5M / 125MEB-6', serie:'SN TR-5M-77',
+         cert:'RBC 24-3390', validade:'30/06/2027', rastreab:'Rede Brasileira de Calibração'},
+  objeto:{nome:'Objeto de teste para radiologia odontológica intraoral',
+          modelo:'Padrão de pares de linhas e escala de contraste', serie:'SN OT-3140',
+          cert:'Certificado do fabricante', validade:'—', rastreab:'Especificação do fabricante'}
+};
+
+/* ==========================================================================
+   3. Rol de ensaios do Anexo I
+
+   Quinze ensaios, na redação do Anexo I da IN nº 95/2021. A coluna de
+   aplicabilidade da norma tem três valores, e só três: C para intraoral
+   convencional (filme), D para intraoral digital, G para os dois.
+
+   Três limites não nascem do Anexo I e sim do art. 2º, que descreve o que o
+   equipamento precisa ter: campo de no máximo 6 cm, distância foco-pele de no
+   mínimo 20 cm e fuga de no máximo 0,25 mGy/h a 1 m. O Anexo I manda medir; o
+   art. 2º é quem diz qual é o número.
+   ========================================================================== */
+
+const GRUPOS = [
+  {id:'geo',   nome:'Geometria do feixe e do localizador'},
+  {id:'feixe', nome:'Parâmetros do feixe e do gerador'},
+  {id:'img',   nome:'Receptor de imagem e qualidade da imagem'},
+  {id:'prot',  nome:'Proteção radiológica e dose'}
+];
+
+/* Cada ensaio declara aplicabilidade, periodicidade e limites exatamente como
+   no Anexo I; o motor de cálculo abaixo usa `lim` para classificar. */
+const ENSAIOS = [
+
+/* --- geometria do feixe e do localizador -------------------------------- */
+{id:'campo', grupo:'geo', nome:'Tamanho de campo',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'valor', unidade:'cm', casas:2, unidadeBruta:'cm', casasBrutas:2,
+ estacoes:[{rot:'Maior dimensão'}], repeticoes:1,
+ /* O Anexo I dá a tolerância por cima ("< 6 cm") e o nível de restrição pelos
+    dois lados ("< 4 cm ou > 8 cm"). Lidas ao pé da letra, as duas colunas se
+    contradizem: um campo de 3 cm seria conforme e restritivo ao mesmo tempo.
+    A faixa de 4 a 6 cm é a leitura que as concilia — abaixo de 4 o campo não
+    cobre o receptor, e isso a própria norma classifica como restrição. */
+ lim:{modo:'faixa', tol:[4,6], restr:[4,8]},
+ tolTexto:'≤ 6 cm de diâmetro na extremidade do localizador', restrTexto:'< 4 cm ou > 8 cm',
+ instr:'trena', N:1.000, Urel:0.5,
+ ajuda:'Exponha um receptor apoiado na extremidade do localizador, sem angulação, e meça a maior dimensão do campo revelado. Registre a maior dimensão, não a média: é ela que a norma limita.',
+ acao:'Substituir o colimador ou o localizador por um que restrinja o campo a 6 cm, conforme o art. 2º.'},
+
+{id:'dfp', grupo:'geo', nome:'Distância foco-pele',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'valor', unidade:'cm', casas:1, unidadeBruta:'cm', casasBrutas:1,
+ estacoes:[{rot:'Foco à extremidade'}], repeticoes:1,
+ lim:{modo:'min', tol:20, restr:null}, tolTexto:'≥ 20 cm', restrTexto:'—',
+ instr:'trena', N:1.000, Urel:0.5,
+ ajuda:'Meça do ponto focal, marcado no cabeçote, à extremidade livre do localizador — é essa extremidade que encosta na pele do paciente.',
+ acao:'Substituir o localizador curto por um cilindro longo; o art. 2º não admite distância menor que 20 cm.'},
+
+/* --- parâmetros do feixe e do gerador ----------------------------------- */
+{id:'csr', grupo:'feixe', nome:'Camada semirredutora (CSR)',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'csr', unidade:'mm Al', casas:2, unidadeBruta:'mm Al', casasBrutas:2,
+ estacoes:[{rot:'CSR'}], repeticoes:1,
+ campos:[{id:'kvp', rot:'Tensão nominal', unidade:'kVp', valor:70}],
+ lim:{modo:'csr'}, tolTexto:'Anexo II, conforme a tensão nominal',
+ restrTexto:'20 % abaixo do valor do Anexo II',
+ instr:'camara', N:1.013, Urel:3.2,
+ ajuda:'Câmara na extremidade do localizador, interpondo lâminas de alumínio junto ao cabeçote até reduzir o kerma à metade; interpole a espessura correspondente. O coeficiente de calibração se cancela na razão entre leituras, mas a incerteza permanece.',
+ acao:'Acrescentar filtração ao cabeçote e repetir o ensaio; filtração insuficiente aumenta a dose na pele sem contribuir para a imagem.'},
+
+{id:'kvp_exat', grupo:'feixe', nome:'Exatidão da tensão do tubo',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'desvio', unidade:'%', casas:2, unidadeBruta:'kVp', casasBrutas:1,
+ estacoes:[{rot:'60 kVp', nominal:60},{rot:'70 kVp', nominal:70}], repeticoes:3,
+ lim:{modo:'abs_max', tol:10, restr:20}, tolTexto:'≤ 10 %', restrTexto:'> 20 %',
+ instr:'multimetro', N:0.994, Urel:2.0,
+ ajuda:'Detector na extremidade do localizador, no eixo central. Três exposições por estação, com o tempo fixo. Equipamento de tensão fixa tem uma estação só — apague a que não existir.',
+ acao:'Solicitar calibração do gerador pela assistência técnica e repetir o ensaio após o serviço.'},
+
+{id:'tempo_exat', grupo:'feixe', nome:'Exatidão do tempo de exposição',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'desvio', unidade:'%', casas:2, unidadeBruta:'ms', casasBrutas:1,
+ estacoes:[{rot:'100 ms', nominal:100},{rot:'200 ms', nominal:200},
+           {rot:'320 ms', nominal:320},{rot:'500 ms', nominal:500}], repeticoes:3,
+ lim:{modo:'abs_max', tol:20, restr:40}, tolTexto:'≤ 20 %', restrTexto:'> 40 %',
+ instr:'multimetro', N:1.002, Urel:2.5,
+ ajuda:'Três exposições por tempo selecionado, sem mexer na tensão. Os tempos aqui são os do seletor do aparelho: troque as estações pelos que o equipamento realmente oferece.',
+ acao:'Solicitar calibração do temporizador; no intraoral é o tempo que define a dose do paciente.'},
+
+{id:'kerma_linear', grupo:'feixe', nome:'Linearidade do kerma no ar',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'linear', unidade:'%', casas:2, unidadeBruta:'µGy', casasBrutas:1, unidadeEstacao:'mAs',
+ estacoes:[{rot:'0,7 mAs', nominal:0.7},{rot:'1,4 mAs', nominal:1.4},
+           {rot:'2,8 mAs', nominal:2.8},{rot:'4,2 mAs', nominal:4.2}], repeticoes:1,
+ lim:{modo:'max', tol:20, restr:40}, tolTexto:'≤ 20 %', restrTexto:'> 40 %',
+ instr:'camara', N:1.013, Urel:3.2,
+ ajuda:'A corrente do intraoral é fixa: quem varia a carga é o tempo. Cada estação é o produto corrente × tempo, e a leitura é o kerma no ar na extremidade do localizador.',
+ acao:'Investigar o gerador e o temporizador em conjunto — a linearidade cai quando o tempo curto não corresponde ao selecionado.'},
+
+{id:'kerma_repro', grupo:'feixe', nome:'Reprodutibilidade do kerma no ar',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'repro', unidade:'%', casas:2, unidadeBruta:'µGy', casasBrutas:1,
+ estacoes:[{rot:'Técnica clínica'}], repeticoes:5,
+ lim:{modo:'max', tol:10, restr:20}, tolTexto:'≤ 10 %', restrTexto:'> 20 %',
+ instr:'camara', N:1.013, Urel:3.2,
+ ajuda:'Cinco exposições consecutivas na técnica de uso clínico, respeitando o intervalo de resfriamento do cabeçote. O resultado é o coeficiente de variação das leituras.',
+ acao:'Investigar instabilidade do gerador e da rede elétrica que alimenta o consultório.'},
+
+/* --- receptor de imagem e qualidade da imagem ---------------------------- */
+{id:'artefatos', grupo:'img', nome:'Artefatos na imagem',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'qualit', lim:{modo:'qualit'}, tolTexto:'Imagens sem artefatos', restrTexto:'—', temRestr:false,
+ instr:'objeto',
+ ajuda:'Adquira um campo homogêneo com cada receptor em uso e inspecione riscos, manchas, linhas e marcas de desgaste.',
+ acao:'Retirar de uso o receptor com artefato e substituí-lo.',
+ nota:'A observação do Anexo I é explícita: os testes de qualidade dos receptores valem para todos os dispositivos disponíveis, não para uma amostra.'},
+
+{id:'apagamento', grupo:'img', nome:'Efetividade do ciclo de apagamento',
+ aplic:'D', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'qualit', lim:{modo:'qualit'}, tolTexto:'Ausência de imagem residual', restrTexto:'—', temRestr:false,
+ instr:'objeto',
+ ajuda:'Exponha a placa a um objeto de alto contraste, apague pelo ciclo do próprio sistema e leia de novo: não pode restar sombra da exposição anterior.',
+ acao:'Prolongar o ciclo de apagamento ou substituir a placa de fósforo.',
+ nota:'Aplicável a sistemas digitais com placa de fósforo; sensor de estado sólido não tem ciclo de apagamento.'},
+
+{id:'qualidade_img', grupo:'img', nome:'Qualidade da imagem',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'qualit', lim:{modo:'qualit'},
+ campos:[{id:'res', rot:'Resolução espacial', unidade:'pl/mm', valor:8},
+         {id:'contraste', rot:'Degraus de contraste visíveis', unidade:'', valor:5}],
+ tolTexto:'Art. 5º — resolução espacial e de contraste equivalentes às da imagem de referência',
+ restrTexto:'—', temRestr:false,
+ instr:'objeto',
+ ajuda:'Objeto de teste específico de intraoral, na mesma técnica da imagem de referência produzida no teste de aceitação. Registre os pares de linhas resolvidos e os degraus de contraste visíveis, e compare com a referência — é a comparação, e não um número absoluto, que o art. 5º exige.',
+ acao:'Reavaliar receptor, processamento e técnica; se a queda persistir, refazer a imagem de referência só depois de corrigida a causa.'},
+
+{id:'camara_escura', grupo:'img', nome:'Vedação da câmara escura',
+ aplic:'C', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'qualit', lim:{modo:'qualit'}, tolTexto:'Sem entrada de luz externa', restrTexto:'Velando filme',
+ temRestr:true, instr:'objeto',
+ ajuda:'Permaneça cinco minutos no escuro total e inspecione frestas; confirme com filme pré-exposto parcialmente coberto.',
+ acao:'Vedar frestas e substituir a lâmpada de segurança.',
+ nota:'Aplicável apenas a serviços que ainda processam filme.'},
+
+/* --- proteção radiológica e dose ---------------------------------------- */
+{id:'dose_rep', grupo:'prot', nome:'Valor representativo de dose',
+ aplic:'G', period:'Teste de aceitação, bienal ou após reparos', freq:['aceitacao','bienal'],
+ tipo:'valor', unidade:'mGy', casas:2, unidadeBruta:'mGy', casasBrutas:2,
+ estacoes:[{rot:'Molar superior adulto'}], repeticoes:3,
+ lim:{modo:'max', tol:3.5, restr:null},
+ tolTexto:'≤ 3,5 mGy (molar superior adulto)', restrTexto:'—',
+ instr:'camara', N:1.013, Urel:3.2,
+ ajuda:'Câmara na extremidade do localizador, com a técnica que o serviço usa para molar superior de adulto — a do protocolo escrito, não uma técnica escolhida para o ensaio.',
+ acao:'Rever a técnica radiográfica e a filtração; dose acima do valor representativo quase sempre é tempo de exposição longo demais.'},
+
+{id:'radiometrico', grupo:'prot', nome:'Levantamento radiométrico',
+ aplic:'G', period:'Teste de aceitação, quadrienal ou após modificações nas salas, equipamentos ou procedimentos',
+ freq:['aceitacao','quadrienal'],
+ tipo:'radiom', unidade:'mSv/ano', casas:2, unidadeBruta:'mSv/ano', casasBrutas:2,
+ estacoes:[{rot:'Posição de disparo', area:'livre'},{rot:'Recepção', area:'livre'},
+           {rot:'Consultório vizinho', area:'livre'},{rot:'Cadeira do paciente', area:'controlada'}],
+ repeticoes:1,
+ lim:{modo:'area'}, tolTexto:'Área livre: ≤ 0,5 mSv/ano; área controlada: ≤ 5,0 mSv/ano',
+ restrTexto:'Área livre: > 1,0 mSv/ano; área controlada: > 10,0 mSv/ano',
+ instr:'camara', N:1.013, Urel:3.2,
+ ajuda:'Medições nas barreiras com simulador espalhador na posição da cabeça do paciente, extrapoladas para a carga de trabalho declarada pelo serviço.',
+ acao:'Reforçar a blindagem das barreiras não conformes e reavaliar o memorial de proteção radiológica.'},
+
+{id:'fuga', grupo:'prot', nome:'Radiação de fuga do cabeçote',
+ aplic:'G', period:'Teste de aceitação, quadrienal ou após modificações nos equipamentos',
+ freq:['aceitacao','quadrienal'],
+ tipo:'valor', unidade:'mGy/h a 1 m', casas:3, unidadeBruta:'mGy/h', casasBrutas:3,
+ estacoes:[{rot:'Máx. medida'}], repeticoes:1,
+ lim:{modo:'max', tol:0.25, restr:0.5},
+ tolTexto:'≤ 0,25 mGy/h a 1 m', restrTexto:'> 0,5 mGy/h a 1 m',
+ instr:'camara', N:1.013, Urel:3.2,
+ ajuda:'Localizador bloqueado, técnica de máxima carga especificada pelo fabricante; percorra o cabeçote e registre o maior valor a 1 m do ponto focal.',
+ acao:'Suspender o uso e acionar o fabricante para reparo da blindagem do cabeçote.'}
+];
+
+const POR_ID = {};
+ENSAIOS.forEach(e=>POR_ID[e.id]=e);
+
+/* ==========================================================================
+   5. Motor de cálculo e classificação
+   ========================================================================== */
+
+const ROTULOS = {conf:'conforme', nconf:'não conforme', restr:'nível de restrição',
+                 pend:'pendente', na:'não aplicável', lim:'limítrofe'};
+const PESO = {restr:0, nconf:1, lim:2, conf:3, pend:4, na:5};
+
+const num  = (v,c)=>(v==null||isNaN(v)) ? '—' : Number(v).toFixed(c).replace('.',',');
+const sinal= (v,c)=>(v==null||isNaN(v)) ? '—' : ((v>0?'+':'') + Number(v).toFixed(c).replace('.',','));
+const media= a=>a.reduce((x,y)=>x+y,0)/a.length;
+const dp   = a=>{ if(a.length<2) return 0; const m=media(a); return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/(a.length-1)); };
+const cv   = a=>{ const m=media(a); return m===0 ? 0 : dp(a)/m*100; };
+/* variação máxima em torno da média, expressa em % — 200·(max−min)/(max+min) */
+const variacao = a=>{ const mx=Math.max.apply(null,a), mn=Math.min.apply(null,a);
+                      return (mx+mn)===0 ? 0 : 200*(mx-mn)/(mx+mn); };
+
+function avaliar(v, lim, extra){
+  if (v==null || isNaN(v)) return 'pend';
+  extra = extra || {};
+  switch(lim.modo){
+    case 'abs_max':{
+      const a=Math.abs(v);
+      if (a<=lim.tol) return 'conf';
+      if (lim.restr==null || a<=lim.restr) return 'nconf';
+      return 'restr';
+    }
+    case 'max':{
+      const tol = extra.tol!=null ? extra.tol : lim.tol;
+      const rst = extra.restr!==undefined ? extra.restr : lim.restr;
+      if (v<=tol) return 'conf';
+      if (rst==null || v<=rst) return 'nconf';
+      return 'restr';
+    }
+    case 'min':{
+      if (v>=lim.tol) return 'conf';
+      if (lim.restr==null || v>=lim.restr) return 'nconf';
+      return 'restr';
+    }
+    case 'faixa':{
+      const [a,b]=lim.tol;
+      if (v>=a && v<=b) return 'conf';
+      if (lim.restr){ const [c,d]=lim.restr; if (v<c || v>d) return 'restr'; }
+      return 'nconf';
+    }
+    case 'csr':{
+      const min = extra.min;
+      if (min==null) return 'pend';
+      if (v>=min) return 'conf';
+      if (v>=min*0.8) return 'nconf';
+      return 'restr';
+    }
+    case 'tabela': return avaliar(v, {modo:'max', tol:extra.tol, restr:null});
+    case 'area':   return avaliar(v, {modo:'max'}, extra);
+    default: return 'pend';
+  }
+}
+
+const pior = arr => arr.reduce((a,b)=> PESO[b] < PESO[a] ? b : a, 'na');
+
+/* Cruza o resultado com a incerteza expandida do instrumento (k = 2): quando a
+   barra U cobre o limite, a conformidade não pode ser afirmada nem negada. */
+function limitrofe(valor, u, lim, extra){
+  if (u==null || valor==null) return false;
+  const alvos=[];
+  extra = extra || {};
+  if (lim.modo==='abs_max') alvos.push(lim.tol, -lim.tol);
+  else if (lim.modo==='max') alvos.push(extra.tol!=null?extra.tol:lim.tol);
+  else if (lim.modo==='min') alvos.push(lim.tol);
+  else if (lim.modo==='faixa') alvos.push(lim.tol[0], lim.tol[1]);
+  else if (lim.modo==='csr' && extra.min!=null) alvos.push(extra.min);
+  else if (lim.modo==='tabela' && extra.tol!=null) alvos.push(extra.tol);
+  return alvos.some(l => l!=null && Math.abs(valor-l) < u);
+}
+
+
+/* --------------------------------------------------------------------------
+   Estações de medida configuráveis
+
+   O Anexo I diz o que medir e com que tolerância, não em que pontos: a técnica
+   de cada serviço escolhe se a exatidão de tensão é verificada em 60/70/80 kVp
+   ou em 70/81/102, quantas espessuras de PMMA entram na compensação do CAE ou
+   quantos pontos o levantamento radiométrico tem. Por isso a lista de estações
+   é do registro da visita, e a do rol é só o ponto de partida.
+   -------------------------------------------------------------------------- */
+
+const estacoesDe = (ens, reg) =>
+  (reg && reg.estacoes && reg.estacoes.length) ? reg.estacoes : (ens.estacoes || []);
+
+/* Onde a lista é do serviço, e não da norma. No intraoral isso é a regra: a
+   tensão pode ser fixa, os tempos do seletor mudam de fabricante para
+   fabricante e os pontos do levantamento radiométrico são os daquele
+   consultório. */
+const estacoesEditaveis = ens =>
+  !!(ens.estacoes && ens.estacoes.length) && ens.tipo !== 'qualit';
+
+/* Unidade do rótulo da estação. Quase sempre é a da leitura bruta; na
+   linearidade, não: mede-se kerma em µGy variando o mAs. */
+const unEst = ens => ens.unidadeEstacao || ens.unidadeBruta || '';
+
+/* A lista de leituras acompanha a de estações — uma casa por estação. */
+function ajustarLeituras(reg, n){
+  reg.leituras = reg.leituras || [];
+  while (reg.leituras.length < n) reg.leituras.push([]);
+  reg.leituras.length = n;
+}
+
+/* Resultado consolidado de um ensaio, a partir do registro bruto da coleta. */
+function calcular(ens, reg){
+  const vazio = {situacao:'pend', valor:null, texto:'—', porEstacao:[], formula:'', u:null};
+  if (!reg) return vazio;
+  if (reg.na) return Object.assign({}, vazio, {situacao:'na', texto:'não aplicável'});
+
+  if (ens.tipo==='qualit'){
+    return {situacao: reg.resultado || 'pend', valor:null,
+            texto: reg.resultado ? ROTULOS[reg.resultado] : '—',
+            porEstacao:[], formula:'Avaliação por inspeção', u:null};
+  }
+
+  const N = ESTADO.corrigir && ens.N!=null ? ens.N : 1;
+  const L = (reg.leituras||[]).map(a=>(a||[]).map(v=>v*N));
+  const campos = Object.assign({}, valoresPadrao(ens), reg.campos||{});
+  const est = estacoesDe(ens, reg);
+  const porEstacao = [];
+  let valor=null, texto='—', formula='', u=null;
+
+  switch(ens.tipo){
+
+    case 'desvio': {
+      est.forEach((e,i)=>{
+        const l=L[i]||[];
+        if (!l.length){ porEstacao.push({rot:e.rot, situacao:'pend', texto:'—', n:0}); return; }
+        const m=media(l), d=(m-e.nominal)/e.nominal*100;
+        const uu=ens.Urel!=null?ens.Urel:null;
+        let s=avaliar(d, ens.lim);
+        if (s==='conf' && limitrofe(d, uu, ens.lim)) s='lim';
+        porEstacao.push({rot:e.rot, situacao:s, valor:d, texto:sinal(d,ens.casas)+' %',
+                         detalhe:`média ${num(m,ens.casasBrutas)} ${ens.unidadeBruta} · nominal ${num(e.nominal,ens.casasBrutas)}`, n:l.length});
+      });
+      const validos=porEstacao.filter(p=>p.valor!=null);
+      if (validos.length){
+        const p=validos.reduce((a,b)=>Math.abs(b.valor)>Math.abs(a.valor)?b:a);
+        valor=p.valor; texto=sinal(valor,ens.casas)+' %';
+      }
+      u = ens.Urel!=null?ens.Urel:null;
+      formula='Desvio = (média corrigida − valor nominal) ÷ valor nominal × 100. Resultado do ensaio = maior desvio em módulo entre as estações.';
+      break;
+    }
+
+    case 'repro': {
+      est.forEach((e,i)=>{
+        const l=L[i]||[];
+        if (l.length<2){ porEstacao.push({rot:e.rot, situacao:'pend', texto:'—', n:l.length}); return; }
+        const c=cv(l);
+        let s=avaliar(c, ens.lim);
+        if (s==='conf' && limitrofe(c, ens.Urel, ens.lim)) s='lim';
+        porEstacao.push({rot:e.rot, situacao:s, valor:c, texto:num(c,ens.casas)+' %',
+                         detalhe:`média ${num(media(l),ens.casasBrutas)} · s ${num(dp(l),ens.casasBrutas+1)} ${ens.unidadeBruta}`, n:l.length});
+      });
+      const validos=porEstacao.filter(p=>p.valor!=null);
+      if (validos.length){ valor=Math.max.apply(null,validos.map(p=>p.valor)); texto=num(valor,ens.casas)+' %'; }
+      u = ens.Urel!=null?ens.Urel:null;
+      formula='Coeficiente de variação = desvio-padrão amostral ÷ média × 100.';
+      break;
+    }
+
+    case 'linear': {
+      const rend=[];
+      est.forEach((e,i)=>{
+        const l=L[i]||[];
+        if (!l.length){ porEstacao.push({rot:e.rot, situacao:'pend', texto:'—', n:0}); return; }
+        const m=media(l), r=m/e.nominal; rend.push(r);
+        porEstacao.push({rot:e.rot, situacao:'—', valor:null,
+                         texto:num(r,3)+' µGy/mAs', detalhe:`kerma ${num(m,ens.casasBrutas)} µGy`, n:l.length});
+      });
+      if (rend.length>=2){
+        const mx=Math.max.apply(null,rend), mn=Math.min.apply(null,rend);
+        valor=(mx-mn)/(mx+mn)*100; texto=num(valor,ens.casas)+' %';
+      }
+      u = ens.Urel!=null?ens.Urel:null;
+      formula='Coeficiente de linearidade = (X_máx − X_mín) ÷ (X_máx + X_mín) × 100, onde X = kerma no ar por unidade de mAs.';
+      break;
+    }
+
+    case 'csr': {
+      const l=L[0]||[];
+      const min=csrMinima(campos.kvp);
+      if (l.length){
+        valor=media(l); texto=num(valor,ens.casas)+' mm Al';
+        u = valor*(ens.Urel/100);
+        let s=avaliar(valor,ens.lim,{min});
+        if (s==='conf' && limitrofe(valor, u, ens.lim, {min})) s='lim';
+        porEstacao.push({rot:`CSR a ${num(campos.kvp,0)} kVp`, situacao:s,
+                         valor, texto, detalhe:`mínimo do Anexo II: ${num(min,2)} mm Al`, n:l.length});
+      }
+      formula='Comparação direta com o Anexo II, interpolado para a tensão nominal do ensaio. Nível de restrição: 20 % abaixo do valor tabelado.';
+      break;
+    }
+
+    case 'radiom': {
+      est.forEach((e,i)=>{
+        const l=L[i]||[];
+        const lim = e.area==='livre' ? {tol:0.5, restr:1.0} : {tol:5.0, restr:10.0};
+        if (!l.length){ porEstacao.push({rot:e.rot, situacao:'pend', texto:'—', n:0}); return; }
+        const m=media(l), s=avaliar(m, ens.lim, lim);
+        porEstacao.push({rot:e.rot, situacao:s, valor:m, texto:num(m,ens.casas)+' mSv/ano',
+                         detalhe:`área ${e.area} · limite ${num(lim.tol,1)} mSv/ano`, n:l.length});
+      });
+      const validos=porEstacao.filter(p=>p.valor!=null);
+      if (validos.length) texto = `${validos.length} de ${est.length} pontos avaliados`;
+      formula='Kerma extrapolado para a carga de trabalho anual declarada, por ponto de medição.';
+      break;
+    }
+
+    case 'valor': {
+      const l=L[0]||[];
+      if (l.length){
+        valor=media(l); texto=num(valor,ens.casas)+' '+ens.unidade;
+        u = ens.Urel!=null ? Math.abs(valor)*(ens.Urel/100) : null;
+        /* A situação sai daqui, da linha da estação: o cruzamento com a
+           incerteza tem de acontecer nesta linha, senão nunca acontece —
+           o fechamento lá embaixo só decide quando não há estação alguma. */
+        let s=avaliar(valor,ens.lim);
+        if (s==='conf' && limitrofe(valor, u, ens.lim)) s='lim';
+        porEstacao.push({rot:est[0].rot, situacao:s, valor, texto, n:l.length});
+      }
+      formula='Comparação direta da medição com o limite do Anexo I.';
+      break;
+    }
+  }
+
+  let situacao;
+  if (porEstacao.length && porEstacao.some(p=>p.situacao && p.situacao!=='—')){
+    situacao = pior(porEstacao.filter(p=>p.situacao && p.situacao!=='—').map(p=>p.situacao));
+  } else if (valor!=null){
+    situacao = avaliar(valor, ens.lim, campos);
+    if (situacao==='conf' && limitrofe(valor, u, ens.lim, campos)) situacao='lim';
+  } else {
+    situacao='pend';
+  }
+  if (situacao==='pend' && valor!=null) situacao=avaliar(valor, ens.lim, campos);
+
+  return {situacao, valor, texto, porEstacao, formula, u, campos};
+}
+
+function valoresPadrao(ens){
+  const o={};
+  (ens.campos||[]).forEach(c=>o[c.id]=c.valor);
+  return o;
+}
+
+/* No laudo a avaliação sai em caixa de título — "Conforme", "Não Conforme".
+   Nas telas de coleta o rótulo continua em caixa baixa, que é o desenho do
+   aplicativo. Mesmos dois vocabulários do coletor de ultrassom. */
+const ROTULOS_DOC = {conf:'Conforme', nconf:'Não Conforme', restr:'Nível de Restrição',
+                     lim:'Limítrofe', na:'Não Aplicável', pend:'Não Realizado'};
+const CHAVE='coletor-cq-odi-in95-v1';
+
+function carregar(){
+  try{ const s=localStorage.getItem(CHAVE); if (s) return JSON.parse(s); }catch(e){}
+  return {visitas:{}, fila:[], enviados:0};
+}
+/* Recalcula o veredito de cada visita e o grava junto. O motor de cálculo
+   continua sendo um só — este resumo é leitura dele, não uma segunda conta.
+   É o que a tela de relatórios da casca lê, sem precisar conhecer o Anexo I. */
+function atualizarResumos(){
+  for (const eqId in BD.visitas){
+    const v = BD.visitas[eqId];
+    const cont = {conf:0, nconf:0, restr:0, lim:0, pend:0, na:0};
+    const sits = [];
+
+    for (const ensId in (v.resultados || {})){
+      const ens = POR_ID[ensId], reg = v.resultados[ensId];
+      if (!ens) continue;
+      let s;
+      try {
+        if (reg.na) s = 'na';
+        else if (ens.tipo === 'qualit') s = reg.resultado || 'pend';
+        else s = calcular(ens, reg).situacao;
+      } catch(e){
+        /* Um ensaio que não fecha a conta não pode impedir o salvamento da
+           visita inteira: entra como pendente e a coleta segue. */
+        s = 'pend';
+      }
+      cont[s] = (cont[s] || 0) + 1;
+      if (s !== 'na' && s !== 'pend') sits.push(s);
+    }
+
+    v.resumo = {
+      situacao: sits.length ? pior(sits) : 'pend',
+      contagem: cont,
+      concluidos: Object.keys(v.resultados || {})
+        .filter(function(k){ return v.resultados[k].concluido; }).length,
+      total: Object.keys(v.resultados || {}).length,
+      atualizado: Date.now()
+    };
+  }
+}
+
+function persistir(){
+  try{ atualizarResumos(); }catch(e){ /* resumo é conveniência, não bloqueia */ }
+  try{ localStorage.setItem(CHAVE, JSON.stringify(BD)); }
+  catch(e){ /* modo privado ou cota cheia: a demonstração segue em memória */ }
+}
+let BD = carregar();
+
+function visita(equipId){
+  if (!BD.visitas[equipId]){
+    BD.visitas[equipId] = {equip:equipId, data:hoje(), tipo:'Controle de qualidade periódico',
+                           resultados:{}, inspecao:{}, inspObs:{}, iniciada:Date.now()};
+  }
+  return BD.visitas[equipId];
+}
+function registro(equipId, ensaioId){
+  const v=visita(equipId);
+  if (!v.resultados[ensaioId]){
+    const ens=POR_ID[ensaioId];
+    v.resultados[ensaioId] = {
+      leituras: (ens.estacoes||[{}]).map(()=>[]),
+      campos: valoresPadrao(ens),
+      resultado:null, obs:'', na:false, concluido:false, ts:null
+    };
+  }
+  return v.resultados[ensaioId];
+}
+function enfileirar(equipId, ensaioId){
+  const ens=POR_ID[ensaioId];
+  BD.fila = BD.fila.filter(f=>!(f.equip===equipId && f.ensaio===ensaioId));
+  BD.fila.push({equip:equipId, ensaio:ensaioId, nome:ens.nome, ts:Date.now()});
+  persistir();
+}
+
+function hoje(){
+  const d=new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+function hora(ts){
+  const d=new Date(ts);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/* ==========================================================================
+   4. Acervo — instituições, parque instalado e identidade do documento
+   A instituição (hospital, clínica ou unidade de pronto atendimento) é o
+   primeiro nível de navegação, e o equipamento vem pendurado nela. Mesma
+   hierarquia do coletor de ultrassom.
+   ========================================================================== */
+
+/* Espaço reservado ao logotipo de quem emite o relatório. Enquanto não há
+   identidade visual carregada, sai a marca neutra abaixo; para usar um
+   logotipo próprio basta trocar este SVG por <img src="..."> na capa e no
+   cabeçalho de folha. Nada aqui identifica empresa alguma. */
+const MARCA = '<svg viewBox="0 0 64 24" aria-hidden="true">' +
+  '<path d="M2 12h6l3-8 5 16 4-12 3 4h5"/>' +
+  '<circle cx="46" cy="12" r="2.4"/><path d="M53 6.5a8 8 0 0 1 0 11"/>' +
+  '<path d="M57.5 3a13 13 0 0 1 0 18"/></svg>';
+
+/* Quem assina o relatório. São os únicos campos de identidade do documento:
+   preenchidos aqui, a capa, o cabeçalho de folha e o bloco de assinaturas
+   passam a sair com os dados do serviço que emite o laudo. */
+const EMISSOR = {
+  razao:'[Razão social do serviço de física médica]',
+  endereco:'[Endereço · cidade/UF · CEP]',
+  contato:'[Telefone · e-mail · site]'
+};
+
+const RESPONSAVEL = {
+  nome:'[Nome do responsável pelos ensaios]',
+  titulo:'Supervisor de proteção radiológica',
+  registro:'[Registro profissional · CNEN/SPR · CREA/CRF]'
+};
+
+/* Vistoria de radioproteção — o que se confere no consultório antes de medir.
+
+   Não é ensaio do Anexo I: não tem tolerância, instrumento nem incerteza. É a
+   verificação das condições de proteção radiológica exigidas pela RDC nº
+   611/2022 e pelos arts. 2º e 3º da IN nº 95/2021, e é o que a autoridade
+   sanitária olha primeiro numa inspeção.
+
+   O intraoral tem duas particularidades que valem item próprio: o operador
+   não pode segurar o receptor nem o cabeçote durante a exposição, e o
+   disparo se dá a pelo menos dois metros ou atrás de barreira — é por isso
+   que o art. 2º exige o cabo disparador de dois metros. */
+const VISTORIA = [
+  {grupo:'Sinalização e avisos', itens:[
+    'Símbolo internacional de radiação ionizante na porta de acesso',
+    'Sinalização luminosa vermelha acionada durante a emissão de raios X',
+    'Sinal sonoro de emissão audível durante toda a exposição (art. 3º)',
+    'Aviso ao paciente sobre gravidez, visível no consultório e na recepção',
+    'Instruções de proteção radiológica afixadas em local visível'
+  ]},
+  /* Aqui se registra apenas o que o consultório tem. A integridade da
+     blindagem é outro ensaio, com inspeção radiográfica própria, e sai em
+     laudo separado — ver NOTA_EPI, no relatório. */
+  {grupo:'Vestimentas de proteção individual', itens:[
+    'Avental plumbífero disponível no consultório',
+    'Protetor de tireoide disponível no consultório',
+    'Cabides próprios para as vestimentas, sem dobra ou vinco',
+    'Laudo de integridade das vestimentas vigente'
+  ]},
+  {grupo:'Posto do operador e técnica', itens:[
+    'Cabo disparador de 2 m, com disparo fora do feixe direto (art. 2º)',
+    'Barreira ou distância mínima de 2 m do cabeçote no momento do disparo',
+    'Posicionador de receptor em uso — ninguém segura o filme ou o sensor',
+    'Ninguém segura o cabeçote durante a exposição',
+    'Porta do consultório fechada durante a exposição'
+  ]},
+  {grupo:'Monitoração e documentação', itens:[
+    'Dosímetros individuais em uso por todos os trabalhadores expostos',
+    'Relatórios de dose dos últimos doze meses arquivados',
+    'Memorial descritivo de proteção radiológica disponível',
+    'Levantamento radiométrico vigente',
+    'Registro de treinamento da equipe em proteção radiológica'
+  ]}
+];
+
+/* A lista achatada é a que grava e a que o relatório percorre: a chave de
+   cada item é o próprio texto, então mexer na redação de um item existente
+   desliga a vistoria já gravada daquele item. Acrescentar e remover, à
+   vontade; reescrever, com essa consciência. */
+const INSPECAO_EQUIP = VISTORIA.reduce((a, g) => a.concat(g.itens), []);
+
+/* Acervo de demonstração. Os nomes são deliberadamente genéricos: instituição
+   inventada com cara de real acaba coincidindo com uma que existe, e nome de
+   responsável técnico vem com número de registro profissional junto — que é
+   de alguém. Marca e modelo de equipamento são de catálogo público e ficam
+   como estão, porque é o que dá verossimilhança à demonstração. */
+const INSTITUICOES = [
+  {id:'hospex', nome:'Hospital Exemplo', cnpj:'00.000.000/0001-00',
+   endereco:'Rua Exemplo, 100 · Bairro Exemplo',
+   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
+   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
+   alvara:'Alvará sanitário 0000/000000'},
+
+  {id:'clinex', nome:'Clínica Exemplo', cnpj:'00.000.000/0002-00',
+   endereco:'Avenida Exemplo, 200 · Bairro Exemplo',
+   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
+   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
+   alvara:'Alvará sanitário 0000/000000'},
+
+  {id:'upaex', nome:'UPA Exemplo', cnpj:'00.000.000/0003-00',
+   endereco:'Praça Exemplo, 300 · Bairro Exemplo',
+   cidade:'Cidade Exemplo/UF', cep:'00000-000', telefone:'(00) 0000-0000',
+   rt:'Responsável Técnico Exemplo — CRM/UF 000.000',
+   alvara:'Alvará sanitário 0000/000000'}
+];
+
+/* Modelo e série do tubo saem juntos no laudo. O acervo antigo guardava os
+   dois numa string só (`tubo`), e é dela que o último recurso lê: equipamento
+   cadastrado antes da separação continua saindo certo no relatório. */
+const tuboDe = eq => [eq.tuboModelo, eq.tuboNs].filter(Boolean).join(' — ') || eq.tubo || '—';
+
+const instPorId = id => INSTITUICOES.find(h => h.id === id) ||
+  {id:'', nome:'—', endereco:'', cidade:'', cep:'', telefone:'', rt:'', alvara:'', cnpj:''};
+const instDe   = eq => instPorId(eq.hosp);
+const equipDe  = instId => EQUIPAMENTOS.filter(e => e.hosp === instId);
+
+/* O cadastro do parque vem preenchido — instituição, equipamento e conjunto
+   emissor são dados de acervo, não de coleta. As LEITURAS começam vazias:
+   cada visita entra em branco, com o roteiro do Anexo I pronto e os campos
+   esperando digitação. */
+const EQUIPAMENTOS = [
+ {id:'ODI-01', hosp:'hospex', relatorio:'2026/0142', periodicidade:'Bienal',
+  visita:'', validade:'',
+  unidade:'Unidade Exemplo I', setor:'Odontologia', sala:'Consultório 3 · periapical',
+  marca:'Dabi Atlante', modelo:'Spectro 70X Eletronic', ns:'SN 70X-3318', patrimonio:'052914',
+  tuboModelo:'Toshiba D-041', tuboNs:'SN T-2277', anoFab:'2021', kvpMax:70, maMax:8,
+  tecnologia:'Digital · sensor', tipo:'Parede', localizador:'Cilindro longo 30 cm',
+  filtracao:'2,5 mm Al (total)'},
+
+ {id:'ODI-02', hosp:'clinex', relatorio:'2026/0147', periodicidade:'Bienal',
+  visita:'', validade:'',
+  unidade:'Unidade Exemplo II', setor:'Odontologia', sala:'Consultório 1 · periapical',
+  marca:'Gnatus', modelo:'Timex 70E', ns:'SN TX-8840', patrimonio:'031277',
+  tuboModelo:'Toshiba D-042B', tuboNs:'SN T-6104', anoFab:'2018', kvpMax:70, maMax:7,
+  tecnologia:'Digital · placa', tipo:'Parede', localizador:'Cilindro longo 30 cm',
+  filtracao:'2,0 mm Al (total)'},
+
+ {id:'ODI-03', hosp:'upaex', relatorio:'2026/0153', periodicidade:'Bienal',
+  visita:'', validade:'',
+  unidade:'Unidade Exemplo III', setor:'Odontologia', sala:'Consultório único · urgência',
+  marca:'Procion', modelo:'Rx Plus 60', ns:'SN PR-1192', patrimonio:'A definir',
+  tuboModelo:'Kailong KL-60', tuboNs:'SN T-0455', anoFab:'2009', kvpMax:60, maMax:7,
+  tecnologia:'Filme', tipo:'Parede', localizador:'Cone curto 20 cm',
+  filtracao:'1,5 mm Al (total)'}
+];
+
+/* ==========================================================================
+   7. Estado, barra do aplicativo e roteamento
+   ========================================================================== */
+
+const ESTADO = {
+  vista:'instituicoes', hosp:null, equip:null, ensaio:null, estacao:0,
+  foco:{tipo:'leitura'}, buffer:'', filtro:'todos', busca:'', editEst:false,
+  corrigir:true, online:false, sincronizando:false, viaCasca:false
+};
+
+const el  = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const instAtual  = () => instPorId(ESTADO.hosp);
+const equipAtual = () => EQUIPAMENTOS.find(e => e.id === ESTADO.equip);
+
+
+/* --- histórico -----------------------------------------------------------
+   Sem isto o botão voltar do aparelho salta o coletor inteiro e volta ao
+   menu, perdendo o lugar. Cada `ir` empilha; o voltar do sistema desempilha,
+   e só na tela de raiz é que ele sai de fato para a casca. */
+function instantaneo(){
+  return {vista: ESTADO.vista, hosp: ESTADO.hosp, equip: ESTADO.equip, ensaio: ESTADO.ensaio};
+}
+
+addEventListener('popstate', function(ev){
+  if (ev.state && ev.state.vista) {
+    Object.assign(ESTADO, ev.state);
+    ESTADO.buffer = '';
+    window.scrollTo(0, 0);
+    render();
+  }
+});
+
+function ir(vista, extra){
+  Object.assign(ESTADO, {vista}, extra || {});
+  ESTADO.buffer = ''; ESTADO.foco = {tipo:'leitura'}; ESTADO.editEst = false;
+  window.scrollTo(0, 0);
+  history.pushState(instantaneo(), '', '#' + vista);
+  render();
+}
+
+/* --- barra do aplicativo ------------------------------------------------
+   Cada tela declara seu título e para onde o botão de voltar leva. A raiz
+   troca o botão pelo símbolo do produto e ganha os ícones de canto. */
+const ICONE = {
+  voltar:'<path d="M15 18l-6-6 6-6"/>',
+  marca:'<path d="M3 17l5-6 4 4 4-7 5 9"/><path d="M3 21h18"/>',
+  tema:'<path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10l1.4 1.4M3 12h2m14 0h2M5.6 18.4L7 17m10-10l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
+  sobre:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
+};
+
+/* A pastilha de rede é também o atalho para a fila: mostra quanto está
+   guardado no aparelho e leva para a tela de sincronização. */
+function chipRede(){
+  const n = BD.fila.length;
+  const txt = ESTADO.online ? (n ? n + ' para enviar' : 'sincronizado')
+                            : (n ? 'sem rede · ' + n : 'sem rede');
+  return `<button class="rede ${ESTADO.online ? 'on' : 'off'}" id="abRede"
+            aria-label="Fila de sincronização">${esc(txt)}</button>`;
+}
+
+function topo(o){
+  const esquerda = o.voltar
+    ? `<button class="ab-icone" id="abVoltar" data-alvo="${esc(o.voltar)}" aria-label="Voltar">
+         <svg viewBox="0 0 24 24">${ICONE.voltar}</svg></button>`
+    : `<a class="ab-icone" href="index.html" aria-label="Todas as modalidades"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.8"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.8"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.8"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.8"/></svg></a>`;
+
+  const direita = o.raiz
+    ? `${chipRede()}
+       <button class="ab-icone leve" id="abTema" aria-label="Alternar tema">
+         <svg viewBox="0 0 24 24">${ICONE.tema}</svg></button>
+       <button class="ab-icone leve" id="abSobre" aria-label="Sobre esta demonstração">
+         <svg viewBox="0 0 24 24">${ICONE.sobre}</svg></button>`
+    : '';
+
+  el('topo').innerHTML = `${esquerda}
+    <div class="ab-tit"><b>${esc(o.titulo)}</b>${o.sub ? `<span>${esc(o.sub)}</span>` : ''}</div>
+    ${direita}`;
+}
+
+/* Ação principal da tela, ancorada no rodapé. */
+const acaoFixa = html => `<div class="acao-fixa">${html}</div>`;
+
+function caixaBusca(dica){
+  return `<div class="busca">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg>
+    <input id="cBusca" type="search" placeholder="${esc(dica)}"
+           value="${esc(ESTADO.busca)}" autocomplete="off">
+  </div>`;
+}
+function ligarBusca(){
+  const b = el('cBusca');
+  if (!b) return;
+  b.addEventListener('input', ()=>{
+    ESTADO.busca = b.value;
+    render();
+    const n = el('cBusca');
+    n.focus(); n.setSelectionRange(n.value.length, n.value.length);
+  });
+}
+
+/* ==========================================================================
+   8. Navegação do acervo — instituição, equipamento, ensaio
+   Três níveis: primeiro onde, depois o quê, depois o ensaio. Mesma ordem do
+   coletor de ultrassom.
+   ========================================================================== */
+
+function progressoEquip(eqId){
+  const v = BD.visitas[eqId];
+  const total = ENSAIOS.length;
+  const contagem = {conf:0, nconf:0, restr:0, lim:0, na:0, pend:0};
+  if (!v) return {feitos:0, total, situacao:'pend',
+                  contagem:Object.assign(contagem, {pend:total})};
+  let feitos = 0;
+  ENSAIOS.forEach(e=>{
+    const r = v.resultados[e.id];
+    const c = calcular(e, r);
+    if (r && r.concluido){ feitos++; contagem[c.situacao] = (contagem[c.situacao] || 0) + 1; }
+    else contagem.pend++;
+  });
+  const sits = Object.keys(contagem).filter(k => contagem[k] > 0 && k !== 'pend' && k !== 'na');
+  return {feitos, total, contagem, situacao: sits.length ? pior(sits) : 'pend'};
+}
+
+function resumoInst(h){
+  const lista = equipDe(h.id);
+  let feitos = 0, total = 0, semVisita = 0;
+  const sits = [];
+  lista.forEach(eq=>{
+    const p = progressoEquip(eq.id);
+    feitos += p.feitos; total += p.total;
+    if (!p.feitos) semVisita++;
+    if (p.situacao !== 'pend') sits.push(p.situacao);
+  });
+  return {equipamentos:lista.length, feitos, total, semVisita,
+          situacao: sits.length ? pior(sits) : 'pend'};
+}
+
+/* --- nível 1: instituições (hospital, clínica, UPA) ---------------------- */
+function telaInstituicoes(){
+  const alvo = ESTADO.busca.trim().toLowerCase();
+  const visiveis = INSTITUICOES.filter(h =>
+    !alvo || [h.nome, h.endereco, h.cidade].join(' ').toLowerCase().includes(alvo));
+
+  const cartoes = visiveis.map(h=>{
+    const r = resumoInst(h);
+    const pct = r.total ? Math.round(r.feitos / r.total * 100) : 0;
+    return `<button class="equip anima" data-h="${esc(h.id)}">
+      <div class="l1">
+        <span class="cod">${esc(h.nome)}</span>
+        <span class="chip c-${r.situacao}">${
+          r.equipamentos ? ROTULOS[r.situacao] : 'sem equipamentos'}</span>
+      </div>
+      <div class="cli">${esc(h.endereco)} · ${esc(h.cidade)}</div>
+      ${r.semVisita ? `<div class="cli" style="color:var(--warn); margin-top:2px">
+        ${r.semVisita} equipamento${r.semVisita > 1 ? 's aguardando' : ' aguardando'} a coleta</div>` : ''}
+      <div class="l3">
+        <span class="progresso"><i style="width:${pct}%"></i></span>
+        <span class="pct mono">${r.equipamentos} equipamento${r.equipamentos === 1 ? '' : 's'}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  const preenchidos = EQUIPAMENTOS.filter(e => progressoEquip(e.id).feitos).length;
+
+  topo({raiz:true, titulo:'Coletor de campo', sub:'Odonto intraoral · IN nº 95/2021 · sem rede'});
+
+  el('vista').innerHTML = `
+    <div style="margin:16px 0 12px">
+      <h1>Controle de Qualidade Odontológico Intraoral</h1>
+      <div class="sub">IN nº 95/2021 · ${ENSAIOS.length} ensaios do Anexo I ·
+        ${INSTITUICOES.length} instituições · ${EQUIPAMENTOS.length} equipamentos ·
+        ${preenchidos ? preenchidos + ' com medidas' : 'nenhuma visita iniciada'}</div>
+    </div>
+
+    ${caixaBusca('Buscar hospital ou clínica por nome, endereço ou cidade')}
+
+    <p class="rotulo">Hospitais e clínicas</p>
+    <div class="lista">
+      ${cartoes || '<p class="vazio-msg">Nenhuma instituição corresponde à busca.</p>'}
+    </div>
+
+    ${acaoFixa(`
+      ${preenchidos ? '<button class="bt" id="btLimpar">Limpar medidas</button>' : ''}
+      <button class="bt principal" id="btDemo">${
+        preenchidos ? 'Regerar demonstração' : 'Gerar dados de demonstração'}</button>`)}`;
+
+  ligarBusca();
+  document.querySelectorAll('.equip').forEach(b =>
+    b.addEventListener('click', ()=> ir('parque', {hosp:b.dataset.h, equip:null, busca:''})));
+  el('btDemo').addEventListener('click', ()=>{
+    EQUIPAMENTOS.forEach(e => preencherDemo(e.id)); persistir(); render();
+  });
+  const bl = el('btLimpar');
+  if (bl) bl.addEventListener('click', ()=>{
+    if (confirm('Apagar todas as coletas gravadas neste aparelho? O cadastro do parque não é afetado.')){
+      BD = {visitas:{}, fila:[], enviados:0}; persistir(); render();
+    }
+  });
+}
+
+/* --- nível 2: equipamentos da instituição -------------------------------- */
+function telaParque(){
+  const h = instAtual();
+  const alvo = ESTADO.busca.trim().toLowerCase();
+  const lista = equipDe(h.id);
+  const visiveis = lista.filter(eq => !alvo ||
+    [eq.id, eq.marca, eq.modelo, eq.ns, eq.unidade, eq.setor, eq.sala, eq.patrimonio]
+      .join(' ').toLowerCase().includes(alvo));
+
+  const cartoes = visiveis.map(eq=>{
+    const p = progressoEquip(eq.id);
+    const pct = Math.round(p.feitos / p.total * 100);
+    return `<button class="equip anima" data-eq="${esc(eq.id)}">
+      <div class="l1">
+        <span class="cod">${esc(eq.marca)} ${esc(eq.modelo)}</span>
+        <span class="chip c-${p.situacao}">${p.feitos ? ROTULOS[p.situacao] : 'aguardando coleta'}</span>
+      </div>
+      <div class="cli">${esc(eq.unidade) || '—'} · ${esc(eq.setor)} · ${esc(eq.sala)}</div>
+      <div class="cli mono" style="margin-top:2px">${esc(eq.id)} · N/S ${esc(eq.ns)} ·
+        ${esc(eq.tecnologia)} · ${esc(eq.kvpMax)} kVp · ${esc(eq.localizador).toLowerCase()}</div>
+      <div class="l3">
+        <span class="progresso"><i style="width:${pct}%"></i></span>
+        <span class="pct mono">${p.feitos ? p.feitos + '/' + p.total + ' ensaios' : 'nenhuma medida'}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  /* Aberto pela casca, o parque é a primeira tela do coletor: voltar tem de
+     sair para o menu de modalidades, e não para uma lista de instituições que
+     duplica a de clientes da casca. Aberto solto, o nível de cima existe. */
+  topo({voltar: ESTADO.viaCasca ? null : 'instituicoes', titulo:h.nome, sub:h.cidade});
+
+  el('vista').innerHTML = `
+    <p class="sub" style="margin:14px 0 12px">${esc(h.endereco) || '—'}${
+      h.cep ? ' · ' + esc(h.cep) : ''}${h.telefone ? ' · ' + esc(h.telefone) : ''}<br>
+      Responsável técnico: ${esc(h.rt)} · ${esc(h.alvara)}</p>
+
+    ${lista.length > 3 ? caixaBusca('Buscar por marca, modelo, N/S, código ou sala') : ''}
+
+    <p class="rotulo">Equipamentos de raios X odontológicos</p>
+    <div class="lista">
+      ${lista.length
+        ? (cartoes || '<p class="vazio-msg">Nenhum equipamento corresponde à busca.</p>')
+        : '<p class="vazio-msg">Esta instituição ainda não tem equipamento cadastrado.</p>'}
+    </div>
+
+    <p class="sub" style="margin-top:18px; max-width:66ch">
+      O rol do Anexo I é o mesmo para todo equipamento; o que muda é a aplicabilidade.
+      A vedação da câmara escura só vale onde ainda se revela filme, e o ciclo de
+      apagamento, só onde há placa de fósforo — nos demais os dois saem do relatório
+      como não aplicáveis, e não como pendência.
+    </p>`;
+
+  ligarBusca();
+  document.querySelectorAll('.equip').forEach(b =>
+    b.addEventListener('click', ()=> ir('roteiro', {equip:b.dataset.eq, busca:''})));
+}
+
+/* --- nível 3: roteiro de ensaios do equipamento -------------------------- */
+const temAlgumaLeitura = reg =>
+  !!reg && ((reg.leituras || []).some(a => a && a.length) || !!reg.resultado);
+
+/* Algumas tolerâncias do Anexo I são frases inteiras. Na lista do roteiro elas
+   entram encurtadas — o texto integral fica no title e no relatório. */
+const curto = (t, n = 46) => t.length <= n ? t : t.slice(0, n - 1).trimEnd() + '…';
+
+function telaRoteiro(){
+  const eq = equipAtual();
+  const v  = visita(eq.id);
+  const p  = progressoEquip(eq.id);
+  const vist = contarVistoria(v);
+
+  const filtros = [['todos','Todos'],['bienal','Bienal'],
+                   ['quadrienal','Quadrienal'],['aceitacao','Aceitação']];
+  const visiveis = ENSAIOS.filter(e =>
+    ESTADO.filtro === 'todos' || (e.freq || []).includes(ESTADO.filtro));
+
+  const grupos = GRUPOS.map(g=>{
+    const lista = visiveis.filter(e => e.grupo === g.id);
+    if (!lista.length) return '';
+    const itens = lista.map(e=>{
+      const reg = v.resultados[e.id];
+      const c = calcular(e, reg);
+      const feito = reg && reg.concluido;
+      const sit = feito ? c.situacao : 'pend';
+      /* Em ensaio qualitativo o texto do resultado é o próprio rótulo do chip:
+         repeti-lo à direita seria redundante. */
+      const valorTxt = feito ? (e.tipo === 'qualit' ? '' : c.texto)
+                             : (temAlgumaLeitura(reg) ? 'em coleta' : '—');
+      return `<button class="teste" data-en="${esc(e.id)}">
+        <span class="chip c-${sit}">${feito ? ROTULOS[c.situacao] : 'pendente'}</span>
+        <span class="corpo">
+          <span class="nome">${esc(e.nome)}</span>
+          <span class="meta">${esc(e.aplic)} · ${esc(e.period.replace('Teste de ',''))}</span>
+        </span>
+        <span class="valor">${esc(valorTxt)}<small title="${esc(e.tolTexto)}">tol. ${esc(curto(e.tolTexto))}</small></span>
+      </button>`;
+    }).join('');
+    return `<div class="grupo-tit"><h2>${esc(g.nome)}</h2><span>${lista.length}</span></div>
+            <div class="teste-lista">${itens}</div>`;
+  }).join('');
+
+  topo({voltar:'parque', titulo:eq.marca + ' ' + eq.modelo,
+        sub:eq.id + ' · ' + instDe(eq).nome});
+
+  el('vista').innerHTML = `
+    <div style="margin:14px 0 12px">
+      <h1>${esc(eq.sala)}</h1>
+      <div class="sub">${esc(tuboDe(eq))} · ${esc(eq.tecnologia)} ·
+        ${esc(eq.kvpMax)} kVp / ${esc(eq.maMax)} mA · N/S ${esc(eq.ns)}</div>
+    </div>
+
+    <div class="resumo">
+      <div class="res-item"><div class="n mono">${p.feitos}<span style="font-size:14px; color:var(--faint)">/${p.total}</span></div><div class="r">ensaios concluídos</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--ok)">${p.contagem.conf || 0}</div><div class="r">conformes</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--warn)">${p.contagem.nconf || 0}</div><div class="r">não conformes</div></div>
+      <div class="res-item"><div class="n mono" style="color:var(--bad)">${p.contagem.restr || 0}</div><div class="r">nível de restrição</div></div>
+    </div>
+
+    <p class="rotulo">Vistoria de radioproteção</p>
+    <button class="teste" id="btVistoria">
+      <span class="chip c-${vist.pend === INSPECAO_EQUIP.length ? 'pend'
+                          : vist.nconf ? 'nconf' : vist.pend ? 'pend' : 'conf'}">${
+        vist.pend === INSPECAO_EQUIP.length ? 'não iniciada'
+        : vist.nconf ? vist.nconf + ' não conforme(s)'
+        : vist.pend ? 'em andamento' : 'conforme'}</span>
+      <span class="corpo">
+        <span class="nome">Sinalização, vestimentas, posto do operador e dosimetria</span>
+        <span class="meta">${INSPECAO_EQUIP.length} itens · condições da RDC nº 611 · não é ensaio do Anexo I</span>
+      </span>
+      <span class="valor">${vist.conf + vist.nconf}/${INSPECAO_EQUIP.length}</span>
+    </button>
+
+    <p class="rotulo">Periodicidade</p>
+    <div class="pills">${filtros.map(([id,rot])=>
+      `<button class="pill" data-f="${id}" aria-pressed="${ESTADO.filtro === id}">${rot}</button>`).join('')}</div>
+
+    ${grupos}
+
+    ${acaoFixa(`
+      <button class="bt" id="btDemoEq">Preencher exemplo</button>
+      <button class="bt principal" id="btLaudo">Ver o relatório gerado</button>`)}`;
+
+  el('btLaudo').addEventListener('click', ()=> ir('laudo'));
+  el('btVistoria').addEventListener('click', ()=> ir('vistoria'));
+  el('btDemoEq').addEventListener('click', ()=>{ preencherDemo(eq.id); persistir(); render(); });
+  document.querySelectorAll('.pill').forEach(b =>
+    b.addEventListener('click', ()=>{ ESTADO.filtro = b.dataset.f; render(); }));
+  /* Só os cartões que carregam um ensaio. A classe `.teste` é o desenho do
+     cartão, e o da vistoria a reaproveita — sem o seletor por atributo, ele
+     recebia este manipulador também, abria um ensaio inexistente e o roteiro
+     se redesenhava no lugar da vistoria. */
+  document.querySelectorAll('.teste[data-en]').forEach(b =>
+    b.addEventListener('click', ()=> ir('ensaio', {ensaio:b.dataset.en, estacao:0})));
+}
+
+/* ==========================================================================
+   9. Coleta de um ensaio
+   Teclado próprio em vez do teclado do sistema: na sala de exame se digita
+   com luva, de pé, olhando para o instrumento e não para a tela.
+   ========================================================================== */
+
+function telaEnsaio(){
+  const eq   = equipAtual();
+  const ens  = POR_ID[ESTADO.ensaio];
+  const reg  = registro(eq.id, ens.id);
+  const c    = calcular(ens, reg);
+  const instr = INSTRUMENTOS[ens.instr];
+
+  const cabeca = `
+    <div class="contexto" style="margin-top:14px">
+      <div style="flex:1 1 300px">
+        <h1 style="font-size:18px">${esc(ens.nome)}</h1>
+        <div class="sub">${esc(ens.aplic)} · ${esc(ens.period)}</div>
+        <div class="limites">
+          <div class="lim-item"><span>Tolerância</span><b>${esc(ens.tolTexto)}</b></div>
+          <div class="lim-item"><span>Nível de restrição</span><b>${esc(ens.restrTexto || '—')}</b></div>
+        </div>
+      </div>
+      <span class="chip c-${c.situacao}" style="margin-top:4px">${ROTULOS[c.situacao]}</span>
+    </div>
+    <p class="ajuda">${esc(ens.ajuda)}${ens.nota ? ' <b style="color:var(--faint)">' + esc(ens.nota) + '</b>' : ''}</p>
+    <p class="ajuda" style="color:var(--faint); font-size:11.5px; margin-bottom:14px">
+      Instrumento: ${esc(instr.modelo)} · certificado ${esc(instr.cert)} · validade ${esc(instr.validade)}
+      ${ens.N != null ? ` · coeficiente ${num(ens.N,3)} · U ± ${num(ens.Urel,1)} % (k = 2)` : ''}
+    </p>`;
+
+  const demo = `
+    <p class="rotulo">Demonstração</p>
+    <div class="card pad">
+      <div class="rodape-acoes" style="margin:0">
+        <button class="bt mini" id="btGerarEnsaio">Gerar medidas de exemplo</button>
+        ${temAlgumaLeitura(reg) || reg.concluido
+          ? '<button class="bt mini" id="btLimparEnsaio">Limpar este ensaio</button>' : ''}
+      </div>
+      <p class="base-nota" style="margin:11px 0 0">Preenche só este ensaio, com leituras
+      plausíveis para as estações configuradas acima, e o marca como concluído.</p>
+    </div>`;
+
+  const rodape = demo + `
+    <p class="rotulo">Observações do inspetor</p>
+    <textarea class="obs" id="obs" placeholder="Condições do ensaio, número de série do acessório, restrições observadas…">${esc(reg.obs || '')}</textarea>
+    ${acaoFixa(`
+      <button class="bt" id="btNA">${reg.na ? 'Voltar a aplicar' : 'Não aplicável'}</button>
+      <button class="bt principal" id="btConcluir">${reg.concluido ? 'Concluído · reabrir' : 'Concluir ensaio'}</button>`)}`;
+
+  topo({voltar:'roteiro', titulo:ens.nome, sub:eq.id + ' · ' + eq.marca + ' ' + eq.modelo});
+
+  el('vista').innerHTML = cabeca +
+    (ens.tipo === 'qualit' ? blocoQualitativo(ens, reg, c) : blocoNumerico(ens, reg, c)) +
+    rodape;
+
+  el('obs').addEventListener('input', e=>{ reg.obs = e.target.value; persistir(); });
+  el('btGerarEnsaio').addEventListener('click', ()=>{
+    gerarMedidasEnsaio(eq.id, ens.id); persistir(); render();
+  });
+  const btLimpar = el('btLimparEnsaio');
+  if (btLimpar) btLimpar.addEventListener('click', ()=>{
+    limparEnsaio(eq.id, ens.id); persistir(); render();
+  });
+  el('btNA').addEventListener('click', ()=>{
+    reg.na = !reg.na; reg.concluido = reg.na; reg.ts = Date.now();
+    if (reg.na) enfileirar(eq.id, ens.id);
+    persistir(); render();
+  });
+  el('btConcluir').addEventListener('click', ()=>{
+    reg.concluido = !reg.concluido; reg.ts = Date.now();
+    if (reg.concluido){ enfileirar(eq.id, ens.id); ir('roteiro'); }
+    else { persistir(); render(); }
+  });
+
+  if (ens.tipo === 'qualit') ligarQualitativo(ens, reg);
+  else ligarNumerico(ens, reg);
+}
+
+function blocoQualitativo(ens, reg, c){
+  const opcoes = [
+    {s:'conf',  rot:'Conforme',     sub:ens.tolTexto},
+    {s:'nconf', rot:'Não conforme', sub:'Fora do critério; exige correção e reavaliação'}
+  ];
+  if (ens.temRestr) opcoes.push({s:'restr', rot:'Nível de restrição', sub:ens.restrTexto});
+  opcoes.push({s:'na', rot:'Não aplicável', sub:'Recurso inexistente neste equipamento'});
+
+  const campos = (ens.campos || []).length ? `
+    <p class="rotulo">Parâmetros medidos</p>
+    <div class="campos">${(ens.campos || []).map(cp=>{
+      const valor = (reg.campos && reg.campos[cp.id] != null) ? reg.campos[cp.id] : cp.valor;
+      return `<button class="campo" data-cp="${esc(cp.id)}" aria-pressed="false">
+        <span>${esc(cp.rot)}</span>
+        <b class="mono">${esc(String(valor).replace('.', ','))} ${esc(cp.unidade || '')}</b></button>`;
+    }).join('')}</div>` : '';
+
+  return `${campos}
+    <p class="rotulo">Resultado da inspeção</p>
+    <div class="opcoes">${opcoes.map(o=>
+      `<button class="opcao" data-s="${o.s}" aria-pressed="${reg.resultado === o.s}">
+        ${esc(o.rot)}<small>${esc(o.sub)}</small></button>`).join('')}</div>`;
+}
+
+function ligarQualitativo(ens, reg){
+  document.querySelectorAll('.opcao').forEach(b => b.addEventListener('click', ()=>{
+    reg.resultado = b.dataset.s;
+    reg.na = (b.dataset.s === 'na');
+    persistir(); render();
+  }));
+  document.querySelectorAll('.campo').forEach(b => b.addEventListener('click', ()=>{
+    const cp = (ens.campos || []).find(x => x.id === b.dataset.cp);
+    const atual = (reg.campos && reg.campos[cp.id] != null) ? reg.campos[cp.id] : cp.valor;
+    const s = prompt(`${cp.rot} (${cp.unidade || ''})`, String(atual).replace('.', ','));
+    if (s != null){
+      const v = parseFloat(s.replace(',', '.'));
+      if (!isNaN(v)){ reg.campos = reg.campos || {}; reg.campos[cp.id] = v; persistir(); render(); }
+    }
+  }));
+}
+
+function blocoNumerico(ens, reg, c){
+  const est = estacoesDe(ens, reg);
+  const lista = est.length ? est : [{rot:'Leitura'}];
+  const iEst = Math.min(ESTADO.estacao, lista.length - 1);
+  const leiturasEst = (reg.leituras[iEst] || []);
+
+  const campos = (ens.campos || []).length ? `
+    <div class="campos">${(ens.campos || []).map(cp=>{
+      const valor = (reg.campos && reg.campos[cp.id] != null) ? reg.campos[cp.id] : cp.valor;
+      const focado = ESTADO.foco.tipo === 'campo' && ESTADO.foco.id === cp.id;
+      if (cp.tipo === 'opcao'){
+        return `<div class="campo"><span>${esc(cp.rot)}</span>
+          <select data-sel="${esc(cp.id)}" class="mono">${cp.opcoes.map(o=>
+            `<option value="${esc(o)}" ${o === valor ? 'selected' : ''}>${esc((cp.rotulos && cp.rotulos[o]) || o)}</option>`).join('')}</select></div>`;
+      }
+      return `<button class="campo" data-cp="${esc(cp.id)}" aria-pressed="${focado}">
+        <span>${esc(cp.rot)}</span>
+        <b class="mono">${esc(String(valor).replace('.', ','))} ${esc(cp.unidade || '')}</b></button>`;
+    }).join('')}</div>` : '';
+
+  /* A lista de estações é a técnica do serviço: dá para trocar os pontos de
+     medida, tirar e acrescentar, sem sair do ensaio. */
+  const podeEditar = estacoesEditaveis(ens);
+  const editando = podeEditar && ESTADO.editEst;
+  const temNominal = ((ens.estacoes || [])[0] || {}).nominal != null;
+
+  const chips = lista.map((e,i)=>{
+      const n = (reg.leituras[i] || []).length;
+      const cls = i === iEst ? 'atual' : (n >= ens.repeticoes ? 'cheia' : '');
+      return `<button class="est ${cls}" data-est="${i}"><b>${esc(e.rot)}</b><span>${n}/${ens.repeticoes}</span></button>`;
+    }).join('');
+
+  const linhasEd = lista.map((e,i)=>`<div class="est-linha">
+      <input class="txt" data-er="${i}" value="${esc(e.rot || '')}"
+             placeholder="nome da estação" autocomplete="off">
+      ${temNominal ? `<input class="txt n" data-en="${i}" inputmode="decimal" placeholder="nominal"
+             value="${e.nominal == null ? '' : esc(String(e.nominal).replace('.', ','))}">
+        <span class="un">${esc(unEst(ens))}</span>` : ''}
+      ${ens.tipo === 'radiom' ? `<select class="txt" data-ea="${i}">
+          <option value="livre"${e.area === 'livre' ? ' selected' : ''}>área livre</option>
+          <option value="controlada"${e.area === 'controlada' ? ' selected' : ''}>área controlada</option>
+        </select>` : ''}
+      <button class="tirar" data-ex="${i}" ${lista.length < 2 ? 'disabled' : ''}
+              aria-label="Remover estação">&times;</button>
+    </div>`).join('');
+
+  const editor = `<div class="est-edit">
+      ${linhasEd}
+      <div class="est-acoes">
+        <button class="bt mini" id="btAddEst">+ estação</button>
+        <button class="bt mini" id="btResetEst">restaurar as do Anexo I</button>
+      </div>
+      <p class="base-nota" style="margin:11px 0 0">O Anexo I diz o que medir e com que
+      tolerância, não em que pontos: escolha aqui os valores que este equipamento vai
+      testar. As leituras já registradas seguem com a sua estação.</p>
+    </div>`;
+
+  const estacoes = (lista.length > 1 || podeEditar) ? `
+    <div class="rotulo-linha">
+      <p class="rotulo">Estações de medida</p>
+      ${podeEditar ? `<button class="bt mini" id="btEditEst">${editando ? 'Concluir' : 'Editar'}</button>` : ''}
+    </div>
+    ${editando ? editor : `<div class="estacoes">${chips}</div>`}` : '';
+
+  const focoCampo = ESTADO.foco.tipo === 'campo'
+    ? (ens.campos || []).find(x => x.id === ESTADO.foco.id) : null;
+  const contagem = leiturasEst.length >= ens.repeticoes
+    ? `estação completa · ${leiturasEst.length} leitura${leiturasEst.length > 1 ? 's' : ''}`
+    : `leitura ${leiturasEst.length + 1} de ${ens.repeticoes}`;
+  const rotVisor = focoCampo ? `${focoCampo.rot} do ensaio`
+                             : (lista.length > 1 ? `${lista[iEst].rot} · ${contagem}` : contagem);
+  const unVisor = focoCampo ? (focoCampo.unidade || '') : ens.unidadeBruta;
+
+  const previa = montarPrevia(ens, reg, c, iEst);
+
+  /* Com várias estações a lista mostra só a estação em foco; o conjunto completo
+     aparece no roteiro e no relatório. */
+  const soAtual = lista.length > 1;
+  const regs = [];
+  (reg.leituras || []).forEach((l,i)=>{
+    if (soAtual && i !== iEst) return;
+    (l || []).forEach((v,j)=> regs.push(`<div class="reg">
+      <span class="e">${esc(lista[i] ? lista[i].rot : '—')}</span>
+      <span class="v mono">${num(v, ens.casasBrutas)} <span style="color:var(--faint)">${esc(ens.unidadeBruta)}</span></span>
+      <button class="x" data-del="${i}:${j}" title="Remover leitura" aria-label="Remover leitura">&times;</button>
+    </div>`));
+  });
+  const outras = (reg.leituras || []).reduce((s,l,i)=>
+    s + ((soAtual && i !== iEst) ? (l || []).length : 0), 0);
+
+  const teclas = ['7','8','9','4','5','6','1','2','3',',','0','←'];
+
+  return `${campos}${estacoes}
+    <div class="visor-box">
+      <div class="visor-rot">${esc(rotVisor)}</div>
+      <div class="visor">
+        <span class="v mono ${ESTADO.buffer ? '' : 'vazio'}" id="visor">${esc(ESTADO.buffer || '0')}</span>
+        <span class="u">${esc(unVisor)}</span>
+      </div>
+      <div class="previa">${previa}</div>
+    </div>
+    <div class="teclado">${teclas.map(t=>
+      `<button class="tecla${(t === '←' || t === ',') ? ' aux' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+    <div class="acoes">
+      <button class="bt" id="btApagar">Apagar</button>
+      <button class="bt principal" id="btRegistrar">${focoCampo ? 'Gravar parâmetro' : 'Registrar leitura'}</button>
+    </div>
+    <p class="rotulo">Leituras ${soAtual ? 'desta estação' : 'deste ensaio'}${
+      outras ? ` <span style="text-transform:none; letter-spacing:0; font-weight:400">· mais ${outras} em outras estações</span>` : ''}</p>
+    <div class="registros">${regs.length ? regs.reverse().join('') : '<p class="vazio-msg">nenhuma leitura registrada ainda</p>'}</div>`;
+}
+
+function montarPrevia(ens, reg, c, iEst){
+  const v = valorBuffer();
+  const cor = s => s === 'conf' ? 'var(--ok)' : s === 'nconf' ? 'var(--warn)'
+                 : s === 'restr' ? 'var(--bad)' : s === 'lim' ? 'var(--info)' : 'var(--faint)';
+
+  /* Com número no visor e estação de desvio, mostra o desvio da leitura em tempo real. */
+  if (v != null && v > 0 && ESTADO.foco.tipo === 'leitura' && ens.tipo === 'desvio'){
+    const est = estacoesDe(ens, reg)[iEst];
+    if (!est || est.nominal == null) return '<span class="txt">estação sem valor nominal</span>';
+    const N = ESTADO.corrigir && ens.N != null ? ens.N : 1;
+    const d = (v * N - est.nominal) / est.nominal * 100;
+    const s = avaliar(d, ens.lim);
+    return `<span class="d" style="color:${cor(s)}">${sinal(d,2)} %</span>
+            <span class="chip c-${s}">${ROTULOS[s]}</span>`;
+  }
+  /* porEstacao é construído na ordem das estações; em ensaios de estação única
+     cai sempre no primeiro item. Com resultado próprio, a estação atual tem
+     precedência sobre o resultado consolidado do ensaio. */
+  const p = (c.porEstacao || [])[iEst] || (c.porEstacao || [])[0];
+  const detalhe = p && p.detalhe ? `<span class="txt">${esc(p.detalhe)}</span>` : '';
+
+  if (p && p.valor != null && p.situacao && p.situacao !== '—' && p.situacao !== 'pend'){
+    return `<span class="d" style="color:${cor(p.situacao)}">${esc(p.texto)}</span>
+            <span class="chip c-${p.situacao}">${ROTULOS[p.situacao]}</span>${detalhe}`;
+  }
+  if (c.valor != null || (c.texto && c.texto !== '—')){
+    return `<span class="d" style="color:${cor(c.situacao)}">${esc(c.texto)}</span>
+            <span class="chip c-${c.situacao}">${ROTULOS[c.situacao]}</span>${detalhe}`;
+  }
+  return '<span class="txt">o resultado aparece conforme as leituras entram</span>';
+}
+
+const valorBuffer = () => {
+  const v = parseFloat(ESTADO.buffer.replace(',', '.'));
+  return isNaN(v) ? null : v;
+};
+
+function ligarNumerico(ens, reg){
+  document.querySelectorAll('.tecla').forEach(b =>
+    b.addEventListener('click', ()=> digitar(b.dataset.t)));
+
+  document.querySelectorAll('.est').forEach(b => b.addEventListener('click', ()=>{
+    ESTADO.estacao = Number(b.dataset.est); ESTADO.buffer = ''; ESTADO.foco = {tipo:'leitura'}; render();
+  }));
+
+  document.querySelectorAll('.campo[data-cp]').forEach(b => b.addEventListener('click', ()=>{
+    const id = b.dataset.cp;
+    ESTADO.foco = (ESTADO.foco.tipo === 'campo' && ESTADO.foco.id === id)
+      ? {tipo:'leitura'} : {tipo:'campo', id};
+    ESTADO.buffer = ''; render();
+  }));
+
+  document.querySelectorAll('select[data-sel]').forEach(s => s.addEventListener('change', ()=>{
+    reg.campos = reg.campos || {}; reg.campos[s.dataset.sel] = s.value; persistir(); render();
+  }));
+
+  /* Cópia de trabalho: enquanto ninguém mexe, o ensaio usa a lista do rol;
+     ao primeiro ajuste o registro passa a ter a sua. */
+  const copiaEst = () => JSON.parse(JSON.stringify(estacoesDe(ens, reg)));
+  function gravarEst(est){
+    est.forEach((e,i)=>{ if (!e.rot) e.rot = 'Estação ' + (i + 1); });
+    reg.estacoes = est;
+    ajustarLeituras(reg, est.length);
+    if (ESTADO.estacao >= est.length) ESTADO.estacao = est.length - 1;
+    persistir(); render();
+  }
+
+  const btEd = el('btEditEst');
+  if (btEd) btEd.addEventListener('click', ()=>{ ESTADO.editEst = !ESTADO.editEst; render(); });
+
+  document.querySelectorAll('[data-er]').forEach(inp => inp.addEventListener('change', ()=>{
+    const est = copiaEst();
+    est[+inp.dataset.er].rot = inp.value.trim();
+    gravarEst(est);
+  }));
+
+  document.querySelectorAll('[data-en]').forEach(inp => inp.addEventListener('change', ()=>{
+    const est = copiaEst(), i = +inp.dataset.en;
+    const v = parseFloat(inp.value.replace(',', '.'));
+    est[i].nominal = isNaN(v) ? null : v;
+    /* Rótulo em branco acompanha o nominal — quem digita 81 quer ver "81 kVp". */
+    if (!est[i].rot && est[i].nominal != null)
+      est[i].rot = String(est[i].nominal).replace('.', ',') + ' ' + unEst(ens);
+    gravarEst(est);
+  }));
+
+  document.querySelectorAll('[data-ea]').forEach(sel => sel.addEventListener('change', ()=>{
+    const est = copiaEst();
+    est[+sel.dataset.ea].area = sel.value;
+    gravarEst(est);
+  }));
+
+  document.querySelectorAll('[data-ex]').forEach(b => b.addEventListener('click', ()=>{
+    const est = copiaEst(), i = +b.dataset.ex;
+    if (est.length < 2) return;
+    est.splice(i, 1);
+    (reg.leituras || []).splice(i, 1);
+    gravarEst(est);
+  }));
+
+  const btAdd = el('btAddEst');
+  if (btAdd) btAdd.addEventListener('click', ()=>{
+    const est = copiaEst();
+    const ult = est[est.length - 1] || {};
+    const nova = {rot:''};
+    if (ult.nominal != null) nova.nominal = ult.nominal;
+    if (ult.area) nova.area = ult.area;
+    est.push(nova);
+    ESTADO.estacao = est.length - 1;
+    gravarEst(est);
+  });
+
+  const btReset = el('btResetEst');
+  if (btReset) btReset.addEventListener('click', ()=>{
+    delete reg.estacoes;
+    ajustarLeituras(reg, (ens.estacoes || []).length);
+    ESTADO.estacao = 0;
+    persistir(); render();
+  });
+
+  el('btApagar').addEventListener('click', ()=>{ ESTADO.buffer = ''; render(); });
+  el('btRegistrar').addEventListener('click', registrar);
+
+  document.querySelectorAll('.x[data-del]').forEach(b => b.addEventListener('click', ()=>{
+    const [i,j] = b.dataset.del.split(':').map(Number);
+    reg.leituras[i].splice(j,1); persistir(); render();
+  }));
+
+  function digitar(t){
+    if (t === '←') ESTADO.buffer = ESTADO.buffer.slice(0,-1);
+    else if (t === ','){ if (!ESTADO.buffer.includes(',') && ESTADO.buffer) ESTADO.buffer += ','; }
+    else if (ESTADO.buffer.replace(',','').length < 6) ESTADO.buffer += t;
+    render();
+  }
+
+  function registrar(){
+    const v = valorBuffer();
+    if (v == null) return;
+    if (ESTADO.foco.tipo === 'campo'){
+      reg.campos = reg.campos || {}; reg.campos[ESTADO.foco.id] = v;
+      ESTADO.foco = {tipo:'leitura'};
+    } else {
+      const est = estacoesDe(ens, reg);
+      const i = Math.max(0, Math.min(ESTADO.estacao, est.length - 1));
+      reg.leituras[i] = reg.leituras[i] || [];
+      reg.leituras[i].push(v);
+      /* Ao fechar exatamente as repetições previstas, salta para a próxima estação
+         que ainda falta. Uma leitura extra numa estação já completa não move o foco. */
+      if (reg.leituras[i].length === ens.repeticoes){
+        const prox = est.findIndex((e,k)=> k > i && (reg.leituras[k] || []).length < ens.repeticoes);
+        if (prox >= 0) ESTADO.estacao = prox;
+      }
+    }
+    ESTADO.buffer = ''; persistir(); render();
+  }
+
+  ESTADO._digitar = digitar;
+  ESTADO._registrar = registrar;
+}
+
+/* Teclado físico — útil quando a demonstração roda em notebook. */
+document.addEventListener('keydown', e=>{
+  if (ESTADO.vista !== 'ensaio') return;
+  if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  const ens = POR_ID[ESTADO.ensaio];
+  if (!ens || ens.tipo === 'qualit' || !ESTADO._digitar) return;
+  if (/^[0-9]$/.test(e.key)){ ESTADO._digitar(e.key); e.preventDefault(); }
+  else if (e.key === ',' || e.key === '.'){ ESTADO._digitar(','); e.preventDefault(); }
+  else if (e.key === 'Backspace'){ ESTADO._digitar('←'); e.preventDefault(); }
+  else if (e.key === 'Enter'){ ESTADO._registrar(); e.preventDefault(); }
+});
+
+/* ==========================================================================
+   9b. Vistoria do equipamento
+
+   A inspeção visual não é ensaio do Anexo I — não tem tolerância, nem
+   periodicidade, nem instrumento — mas é o que abre a visita e o que o laudo
+   traz antes dos resultados. Fica numa tela própria, percorrida de uma vez ao
+   chegar na sala, em vez de espalhada entre os ensaios.
+
+   Três estados por item: conforme, não conforme e não inspecionado. O
+   terceiro é o inicial e sobrevive: visita em que ninguém olhou o cabo de
+   alimentação sai dizendo isso, e não "conforme" por omissão.
+   ========================================================================== */
+
+function contarVistoria(v){
+  const c = {conf:0, nconf:0, pend:0};
+  INSPECAO_EQUIP.forEach(i=>{
+    const s = (v.inspecao || {})[i];
+    if (s === 'Conforme') c.conf++;
+    else if (s) c.nconf++;
+    else c.pend++;
+  });
+  return c;
+}
+
+function telaVistoria(){
+  const eq = equipAtual();
+  const v  = visita(eq.id);
+  const c  = contarVistoria(v);
+  v.inspObs = v.inspObs || {};
+
+  const linha = (item)=>{
+    const i = INSPECAO_EQUIP.indexOf(item);
+    const s = (v.inspecao || {})[item];
+    const o = v.inspObs[item] || '';
+    return `<div class="vist-item ${s && s !== 'Conforme' ? 'nc' : ''}">
+      <span class="nome">${esc(item)}</span>
+      <span class="sn">
+        <button data-i="${i}" data-v="Conforme" aria-pressed="${s === 'Conforme'}">Conforme</button>
+        <button data-i="${i}" data-v="Não conforme" aria-pressed="${!!s && s !== 'Conforme'}">Não conforme</button>
+      </span>
+      ${s && s !== 'Conforme'
+        ? `<textarea class="obs" data-o="${i}"
+             placeholder="O que foi encontrado — vai para a coluna de observações do laudo">${esc(o)}</textarea>`
+        : ''}
+    </div>`;
+  };
+
+  const itens = VISTORIA.map(g=>{
+    const pendentes = g.itens.filter(i=>!(v.inspecao || {})[i]).length;
+    return `<div class="grupo-tit"><h2>${esc(g.grupo)}</h2>
+        <span>${g.itens.length - pendentes}/${g.itens.length}</span></div>
+      <div class="vist-lista">${g.itens.map(linha).join('')}</div>`;
+  }).join('');
+
+  topo({voltar:'roteiro', titulo:'Vistoria de radioproteção',
+        sub:eq.marca + ' ' + eq.modelo + ' · ' + eq.id});
+
+  el('vista').innerHTML = `
+    <div style="margin:14px 0 12px">
+      <h1>Condições de proteção radiológica</h1>
+      <div class="sub">${INSPECAO_EQUIP.length} itens · ${c.conf} conforme(s) ·
+        ${c.nconf} não conforme(s) ·
+        ${c.pend ? c.pend + ' ainda não inspecionado(s)' : 'nenhum item em aberto'}</div>
+    </div>
+
+    <p class="sub" style="margin:0 2px 14px; max-width:66ch">
+      Sinalização, vestimentas plumbíferas, posto do operador, dosimetria e
+      documentação — as condições da RDC nº 611/2022, que não são ensaio do Anexo I e
+      nem por isso deixam de entrar no laudo. Tocar de novo no botão já marcado devolve
+      o item a <b>não inspecionado</b>: o relatório diz o que foi olhado, não o que se
+      supõe.
+    </p>
+
+    ${itens}
+
+    ${acaoFixa(`
+      <button class="bt" id="btTodosConf">Marcar todos conformes</button>
+      <button class="bt principal" id="btVoltarRot">Voltar ao roteiro</button>`)}`;
+
+  document.querySelectorAll('.vist-item .sn button').forEach(b =>
+    b.addEventListener('click', ()=>{
+      const item = INSPECAO_EQUIP[Number(b.dataset.i)];
+      v.inspecao = v.inspecao || {};
+      /* Tocar no que já está marcado desmarca: é como se corrige um toque
+         errado sem ter de apagar a visita inteira. */
+      if (v.inspecao[item] === b.dataset.v) {
+        delete v.inspecao[item];
+        delete v.inspObs[item];
+      } else {
+        v.inspecao[item] = b.dataset.v;
+      }
+      persistir(); render();
+    }));
+
+  /* A observação grava ao sair do campo, não a cada tecla: redesenhar a tela
+     no meio da digitação tiraria o foco a cada letra. */
+  document.querySelectorAll('.vist-item textarea.obs').forEach(t =>
+    t.addEventListener('change', ()=>{
+      v.inspObs[INSPECAO_EQUIP[Number(t.dataset.o)]] = t.value;
+      persistir();
+    }));
+
+  el('btTodosConf').addEventListener('click', ()=>{
+    v.inspecao = v.inspecao || {};
+    INSPECAO_EQUIP.forEach(i=>{ if (!v.inspecao[i]) v.inspecao[i] = 'Conforme'; });
+    persistir(); render();
+  });
+  el('btVoltarRot').addEventListener('click', ()=> ir('roteiro'));
+}
+
+/* ==========================================================================
+   Exportação da visita em planilha
+
+   Uma visita, um arquivo. O formato é longo: cada linha é uma grandeza, com
+   as colunas da esquerda dizendo onde e em que ensaio, e o par
+   variável/valor dizendo o que aquele número é. Leitura bruta, valor nominal,
+   parâmetro do ensaio, resultado consolidado e item de vistoria convivem na
+   mesma tabela, distinguidos pela coluna `variavel`.
+
+   É feio de ler de cima a baixo e é exatamente o que uma tabela dinâmica e um
+   INSERT no banco querem. A folha de rosto legível já existe: é o relatório.
+
+   Todo contexto se repete em toda linha, de propósito. Planilha longa se
+   filtra e se pivota; planilha que só diz o equipamento no alto de cada bloco
+   não sobrevive a uma ordenação por outra coluna.
+
+   O que a planilha guarda é a **leitura bruta**. O resultado consolidado vai
+   junto por conveniência, mas é derivado — ao reimportar, recalcule, nunca
+   confie na coluna. Se a tolerância da norma mudar, a conta muda e o arquivo
+   antigo continua correto no que importa.
+   ========================================================================== */
+
+const COLUNAS_PLANILHA = [{rot:'', larg:58}, {rot:'', larg:36}];
+
+/* A unidade vai no rótulo, e não numa terceira coluna: assim a coluna B fica
+   só com o que foi medido ou cadastrado — número onde é número, texto onde é
+   texto. É o que se copia, se soma e se confere de bater o olho. */
+const un = u => u ? ' (' + u + ')' : '';
+
+/* O motor calcula em ponto flutuante, e -4.796888888888884 numa célula não é
+   precisão, é ruído: o ensaio declara quantas casas valem. A leitura bruta não
+   passa por aqui — só o que foi derivado dela. */
+const arred = (v, casas) => (v == null || !isFinite(v)) ? v
+  : Number(Number(v).toFixed(casas == null ? 4 : casas));
+
+function linhasPlanilha(eqId){
+  const eq = EQUIPAMENTOS.find(e => e.id === eqId);
+  const inst = instDe(eq);
+  const v = visita(eqId);
+  const data = v.data || hoje();
+  const L = [];
+
+  /* Rótulo vazio ou valor ausente não vira linha: a planilha é para ler, e
+     linha com traço no lugar do número só ocupa espaço. */
+  const par   = (rot, val) => { if (val != null && val !== '') L.push([rot, val]); };
+  const sub   = (rot, val) => par('    ' + rot, val);
+  const forte = rot => { const l = [rot, '']; l.forte = true; L.push(l); };
+  const secao = t => L.push({secao:t});
+  const vazio = () => L.push({vazio:true});
+
+  L.push({titulo:'Controle de Qualidade — Radiologia Odontológica Intraoral'});
+  par('Instrução Normativa', 'IN nº 95/2021 · RDC nº 611/2022');
+  par('Data da visita', data);
+  par('Natureza da avaliação', v.tipo);
+  par('Relatório nº', eq.relatorio);
+  par('Periodicidade', eq.periodicidade);
+  vazio();
+
+  secao('CLIENTE');
+  par('Instituição', inst.nome);
+  par('CNPJ', inst.cnpj);
+  par('Endereço', inst.endereco);
+  par('Cidade', inst.cidade);
+  par('CEP', inst.cep);
+  par('Telefone', inst.telefone);
+  par('Responsável técnico', inst.rt);
+  par('Licença sanitária', inst.alvara);
+  vazio();
+
+  secao('EQUIPAMENTO');
+  par('Código', eq.id);
+  par('Marca', eq.marca);
+  par('Modelo', eq.modelo);
+  par('Número de série', eq.ns);
+  par('Patrimônio', eq.patrimonio);
+  par('Unidade', eq.unidade);
+  par('Setor', eq.setor);
+  par('Sala', eq.sala);
+  par('Receptor', eq.tecnologia);
+  par('Instalação', eq.tipo);
+  vazio();
+
+  secao('CONJUNTO EMISSOR');
+  par('Modelo do tubo', eq.tuboModelo || eq.tubo);
+  par('N/S do tubo', eq.tuboNs);
+  par('Ano de fabricação', eq.anoFab);
+  par('Tensão máxima (kVp)', eq.kvpMax);
+  par('Corrente máxima (mA)', eq.maMax);
+  par('Filtração total', eq.filtracao);
+  par('Localizador', eq.localizador);
+  vazio();
+
+  secao('VISTORIA DE RADIOPROTEÇÃO');
+  VISTORIA.forEach(g => {
+    forte(g.grupo);
+    g.itens.forEach(item => {
+      par('    ' + item, (v.inspecao || {})[item] || 'Não inspecionado');
+      const o = (v.inspObs || {})[item];
+      if (o) par('        observação', o);
+    });
+  });
+  vazio();
+
+  /* Um bloco por ensaio, na ordem do roteiro: o nome abre em negrito e as
+     medidas vêm recuadas embaixo. É a mesma leitura de uma folha de campo. */
+  GRUPOS.forEach(g => {
+    const lista = ENSAIOS.filter(e => e.grupo === g.id);
+    if (!lista.length) return;
+    secao('ENSAIOS · ' + g.nome.toUpperCase());
+
+    lista.forEach(ens => {
+      const reg = v.resultados[ens.id];
+      forte(ens.nome);
+
+      if (!reg || (!reg.concluido && !temAlgumaLeitura(reg))){
+        sub('Situação', 'não realizado');
+        return;
+      }
+      if (reg.na){
+        sub('Situação', 'não aplicável');
+        if (reg.obs) sub('Observação', reg.obs);
+        return;
+      }
+
+      const c = calcular(ens, reg);
+
+      (ens.campos || []).forEach(cp => {
+        const val = (reg.campos && reg.campos[cp.id] != null) ? reg.campos[cp.id] : cp.valor;
+        sub(cp.rot + un(cp.unidade), val);
+      });
+
+      if (ens.tipo === 'qualit'){
+        sub('Avaliação', ROTULOS[c.situacao] || '—');
+      } else {
+        estacoesDe(ens, reg).forEach((e, i) => {
+          (reg.leituras[i] || []).forEach((x, k) =>
+            sub(e.rot + ' · leitura ' + (k + 1) + un(ens.unidadeBruta), x));
+          if (e.nominal != null) sub(e.rot + ' · nominal' + un(unEst(ens)), e.nominal);
+        });
+        /* O resultado por estação vem do motor, não da lista de estações: em
+           alguns ensaios o motor reescreve o rótulo — a CSR vira "CSR a
+           70 kVp" — e casar por texto perderia essas linhas. */
+        /* Com uma estação só, a linha da estação e o resultado do ensaio são o
+           mesmo número: repetir os dois só faz a folha render menos. */
+        const umaEstacao = (c.porEstacao || []).length <= 1;
+        (c.porEstacao || []).forEach(p => {
+          if (p.valor != null && !umaEstacao)
+            sub(p.rot + ' · resultado' + un(ens.unidade), arred(p.valor, ens.casas));
+          if (p.detalhe) sub(p.rot + ' · referência', p.detalhe);
+        });
+        if (ens.N != null)    sub('Coeficiente de calibração', ens.N);
+        if (ens.Urel != null) sub('Incerteza expandida (%)', ens.Urel);
+        if (c.valor != null)  sub('Resultado' + un(ens.unidade), arred(c.valor, ens.casas));
+      }
+
+      sub('Tolerância', ens.tolTexto);
+      if (ens.restrTexto && ens.restrTexto !== '—') sub('Nível de restrição', ens.restrTexto);
+      sub('Situação', ROTULOS[c.situacao] || '—');
+      if (reg.obs) sub('Observação', reg.obs);
+    });
+    vazio();
+  });
+
+  return L;
+}
+
+/* Nome de arquivo que ordena sozinho na pasta: equipamento e data ISO. */
+function nomePlanilha(eqId){
+  const v = visita(eqId);
+  const d = String(v.data || hoje()).split('/');
+  const iso = d.length === 3 ? d[2] + '-' + d[1] + '-' + d[0] : 'sem-data';
+  return 'CQ_IN95_' + eqId + '_' + iso + '.xlsx';
+}
+
+/* Precisa ser chamada de dentro de um toque: tanto a folha de
+   compartilhamento quanto o download exigem gesto do usuário. */
+async function exportarPlanilha(eqId, botao){
+  if (!window.Planilha){
+    alert('O gerador de planilha não carregou. Recarregue o aplicativo.');
+    return;
+  }
+  const rotulo = botao ? botao.textContent : '';
+  if (botao){ botao.disabled = true; botao.textContent = 'Gerando…'; }
+  try {
+    const blob = Planilha.gerar({
+      aba: 'Visita',
+      colunas: COLUNAS_PLANILHA,
+      linhas: linhasPlanilha(eqId),
+      filtro: false, congelar: false
+    });
+    const como = await Planilha.salvar(blob, nomePlanilha(eqId));
+    if (botao) botao.textContent = como === 'cancelado' ? rotulo : 'Planilha pronta';
+  } catch (e){
+    if (botao) botao.textContent = 'Falhou — tente de novo';
+    console.error('exportarPlanilha', e);
+  } finally {
+    if (botao){
+      botao.disabled = false;
+      setTimeout(()=>{ if (botao) botao.textContent = rotulo; }, 2600);
+    }
+  }
+}
+
+/* ==========================================================================
+   10. Relatório
+   Mesma estrutura, mesma ordem de seções e mesma formatação de impressão dos
+   coletores de radiografia e de ultrassom — capa, cadastro, objetivo, introdução, descrição dos
+   ensaios com as caixas de tolerância, referências, equipamento utilizado,
+   definição dos parâmetros, identificação do conjunto emissor, inspeção
+   geral, resultados e conclusão. O que muda é a base normativa.
+   ========================================================================== */
+
+/* O Anexo I lista a integridade das vestimentas plumbíferas entre os ensaios,
+   e este relatório não a traz: ela é emitida em documento próprio, como é a
+   prática do mercado — inspeção radiográfica das vestimentas, com validade e
+   registro separados do laudo do equipamento. A omissão tem de estar escrita,
+   senão o laudo parece incompleto em vez de deliberado. */
+const NOTA_EPI = `A avaliação da integridade das vestimentas de proteção
+  individual — aventais, protetores de tireoide e de gônadas — não integra este
+  relatório: é emitida em laudo próprio, com inspeção radiográfica das peças,
+  validade e registro independentes. A vistoria acima registra apenas a
+  disponibilidade das vestimentas na sala, que é condição de uso do equipamento.`;
+
+const NORMA = {
+  objetivo:`Os ensaios realizados fazem parte de um programa de garantia da qualidade que
+    busca verificar se o equipamento identificado acima está em conformidade com as
+    exigências da Instrução Normativa nº 95, de 27 de maio de 2021 (ANVISA), que dispõe
+    sobre os requisitos sanitários para a garantia da qualidade e da segurança de sistemas
+    de radiologia odontológica intraoral.`,
+
+  introducao:[
+    `Em atendimento à Instrução Normativa nº 95 — ANVISA, que estabelece os testes de
+     controle de qualidade, as respectivas periodicidades, tolerâncias e níveis de restrição
+     para os sistemas de radiologia odontológica intraoral, foram executados os ensaios do
+     Anexo I aplicáveis ao sistema avaliado, com o equipamento nas condições habituais de uso
+     clínico.`,
+    `As medições de tensão e de tempo de exposição foram feitas com multímetro não invasivo
+     apoiado na extremidade do localizador, no eixo central do feixe; as de kerma no ar,
+     camada semirredutora, dose de entrada e radiação de fuga, com câmara de ionização e
+     eletrômetro calibrados. O tamanho de campo e a distância foco-pele foram medidos com
+     trena metálica e paquímetro, e a qualidade da imagem, com objeto de teste específico de
+     radiologia odontológica intraoral. Todos os instrumentos têm certificado de calibração
+     vigente e rastreabilidade à Rede Brasileira de Calibração, declarados na seção de
+     equipamento utilizado.`,
+    `As leituras brutas são corrigidas pelo coeficiente de calibração do respectivo
+     certificado antes de qualquer comparação com os limites da norma. A incerteza
+     expandida de cada instrumento, com fator de abrangência k = 2 e nível de confiança
+     aproximado de 95 %, acompanha o resultado e é cruzada com o limite normativo: quando
+     a barra de incerteza cobre o limite, o resultado é declarado limítrofe.`,
+    `A avaliação da qualidade da imagem segue o art. 5º da Instrução Normativa nº 95/2021:
+     a imagem do objeto de teste é comparada à imagem de referência produzida no teste de
+     aceitação, com a mesma técnica radiográfica. O critério é a equivalência com a
+     referência do próprio serviço, e não um valor absoluto de resolução.`
+  ],
+
+  referencias:[
+    'Instrução Normativa nº 95 da ANVISA, de 27 de maio de 2021 — Anexos I e II;',
+    'RDC nº 611 da ANVISA, de 09 de março de 2022;',
+    'Protocolo Español de Control de Calidad en Radiodiagnóstico, revisión 2011;',
+    `Protocolos de garantia da qualidade em radiodiagnóstico aplicáveis à radiologia
+     odontológica, publicados pela Agência Internacional de Energia Atômica;`,
+    'AAPM Report nº 74, Quality Control in Diagnostic Radiology;',
+    'ABNT NBR ISO/IEC 17025 — requisitos gerais para a competência de laboratórios de ensaio.'
+  ],
+
+  definicoes:[
+    ['Conforme', `O ensaio apresentou resultado dentro da tolerância estabelecida no Anexo I
+      da Instrução Normativa nº 95/2021, considerada a incerteza declarada do instrumento
+      utilizado.`],
+    ['Não Conforme', `O resultado excedeu a tolerância do Anexo I sem atingir o nível de
+      restrição. O uso clínico pode prosseguir mediante plano de correção formalizado, com
+      reavaliação do item reprovado após a intervenção técnica.`],
+    ['Nível de Restrição', `O resultado atingiu o nível de restrição definido no Anexo I.
+      Recomenda-se a restrição imediata do uso clínico do equipamento até a correção e a
+      reavaliação do ensaio, com registro da providência no programa de garantia da
+      qualidade do serviço.`],
+    ['Limítrofe', `A barra de incerteza expandida do instrumento cobre o limite normativo.
+      Não é possível afirmar conformidade nem reprovação sem repetir a medição com
+      incerteza menor, e por isso o resultado não é computado como não conformidade.`],
+    ['Não Aplicável', `O ensaio não se aplica à tecnologia do sistema avaliado — a vedação da
+      câmara escura num serviço sem filme, o ciclo de apagamento num sistema de sensor — ou
+      não pôde ser realizado nesta visita. A justificativa consta na coluna de observações do
+      ensaio correspondente, e o item não entra na contagem de não conformidades.`]
+  ],
+
+  conclusaoBase:`Os resultados referem-se exclusivamente ao equipamento e às condições
+    descritas neste documento, na data do ensaio. O rol de ensaios do Anexo I deve ser
+    complementado pelos testes de aceitação e de controle de qualidade estabelecidos pelo
+    fabricante do sistema avaliado, nos termos do art. 1º, parágrafo único, da Instrução
+    Normativa nº 95/2021.`,
+
+  recomendacoes:[
+    `Manter o registro dos ensaios, das não conformidades e das providências no programa de
+     garantia da qualidade do serviço, à disposição da autoridade sanitária;`,
+    `Repetir os ensaios reprovados após a intervenção técnica, antes do retorno do
+     equipamento ao uso clínico;`,
+    `Reavaliar os ensaios afetados sempre que houver troca do cabeçote, do localizador ou do
+     receptor de imagem, e refazer a imagem de referência do art. 5º após a intervenção;`,
+    `Executar os testes de qualidade do receptor em todos os dispositivos disponíveis —
+     sensores, placas e chassis —, conforme a observação do Anexo I.`
+  ],
+
+  assinaturas:['Responsável pelos ensaios', 'Responsável técnico pelo serviço de saúde'],
+
+  icp:`Este documento é assinado digitalmente, tendo toda validade jurídica amparada pela
+    Medida Provisória 2.200-2, está vinculado à ICP-Brasil e atende às aplicações do
+    Decreto 3.996, podendo ser utilizado no âmbito da Administração Pública Federal.
+    A validade das assinaturas pode ser verificada pelo site do Instituto Nacional de
+    Tecnologia da Informação — https://verificador.iti.gov.br`
+};
+
+/* Validade padrão do laudo: um ano da data da visita. */
+function validadeDe(data){
+  const p = String(data || '').split('/');
+  if (p.length !== 3) return '—';
+  const d = new Date(Number(p[2]) + 1, Number(p[1]) - 1, Number(p[0]));
+  d.setDate(d.getDate() - 1);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+const cabecaDoc = eq => {
+  const h = instDe(eq), ano = (BD.visitas[eq.id] && BD.visitas[eq.id].data || hoje()).slice(-4);
+  return `<div class="cabeca-doc">
+    <span class="marca" aria-hidden="true">${MARCA}</span>
+    <span class="l"><b>${esc(h.nome)}</b>Controle de qualidade ${esc(ano)} ·
+      ${eq.relatorio ? esc(eq.relatorio) + ' · ' : ''}${esc(eq.marca)} ${esc(eq.modelo)} ·
+      ${esc(eq.id)}</span>
+  </div>`;
+};
+
+/* --- tabela de inspeção geral, na mesma redação do coletor de ultrassom ---
+   A terceira coluna é a observação escrita na vistoria. Item reprovado sem
+   observação sai com um traço, e não com texto inventado: o que o relatório
+   afirma é o que o físico digitou. */
+function tabelaInspecao(itens, valores, obs, grupos){
+  const linha = i=>{
+    const v = (valores || {})[i];
+    const o = ((obs || {})[i] || '').trim();
+    return `<tr><td>${esc(i)}</td>
+      <td style="width:1%">${v ? `<span class="chip c-${v === 'Conforme' ? 'conf' : 'nconf'}">${esc(v)}</span>`
+                               : '<span class="chip c-pend">Não inspecionado</span>'}</td>
+      <td style="width:22%">${esc(o) || '—'}</td></tr>`;
+  };
+  /* Com grupos, cada um abre uma linha de título — é como a vistoria é feita
+     e como o laudo fica legível. Sem grupos, a tabela sai corrida, que é o
+     caso das listas curtas. */
+  const linhas = grupos
+    ? grupos.map(g=>`<tr class="total"><td colspan="3">${esc(g.grupo)}</td></tr>`
+                    + g.itens.map(linha).join('')).join('')
+    : itens.map(linha).join('');
+  return `<div class="tab-scroll"><table>
+    <thead><tr><th>Inspeção</th><th>Avaliação</th><th>Observações</th></tr></thead>
+    <tbody>${linhas}</tbody></table></div>`;
+}
+
+/* --- um bloco de resultado, na numeração do relatório -------------------- */
+function blocoEnsaio(ens, v, numero){
+  const reg = v.resultados[ens.id];
+  const c   = calcular(ens, reg);
+  const feito = reg && reg.concluido;
+  const chip = s => `<span class="chip c-${s}">${ROTULOS_DOC[s]}</span>`;
+  let tabela;
+
+  if (!feito){
+    tabela = `<table><tbody><tr><td>Ensaio ainda não realizado nesta visita.</td>
+      <td style="width:1%">${chip('pend')}</td></tr></tbody></table>`;
+  }
+  else if (reg.na || c.situacao === 'na'){
+    tabela = `<table><thead><tr><th>Resultado</th><th>Avaliação</th><th>Observações</th></tr></thead>
+      <tbody><tr><td>Ensaio não aplicável a este equipamento.</td><td>${chip('na')}</td>
+      <td>${esc(reg.obs) || '—'}</td></tr></tbody></table>`;
+  }
+  else if (ens.tipo === 'qualit'){
+    tabela = `<table><thead><tr><th>Critério</th><th>Avaliação</th><th>Observações</th></tr></thead>
+      <tbody><tr><td>${esc(ens.tolTexto)}</td><td>${chip(c.situacao)}</td>
+      <td>${esc(reg.obs) || '—'}</td></tr></tbody></table>`;
+  }
+  else {
+    const pes = (c.porEstacao || []).filter(p => p.rot);
+    /* Com uma estação só, a linha de fechamento repetiria a própria medida:
+       nesse caso a tolerância entra na coluna de referência e a tabela tem
+       uma linha, como no relatório de ultrassom. */
+    const uma = pes.length <= 1;
+    const linhas = pes.map(p=>`<tr${uma ? ' class="total"' : ''}>
+        <td>${esc(p.rot)}</td>
+        <td class="num mono">${esc(p.texto)}</td>
+        <td>${uma ? 'Tolerância ' + esc(ens.tolTexto) + (p.detalhe ? ' · ' + esc(p.detalhe) : '')
+                  : esc(p.detalhe || '—')}</td>
+        <td>${p.situacao && p.situacao !== '—' ? chip(p.situacao) : '—'}</td>
+      </tr>`).join('');
+    const total = uma ? '' : `<tr class="total">
+        <td>Resultado do ensaio</td>
+        <td class="num mono">${esc(c.texto)}</td>
+        <td>Tolerância ${esc(ens.tolTexto)}</td>
+        <td>${chip(c.situacao)}</td>
+      </tr>`;
+    tabela = `<table>
+      <thead><tr><th>Estação de medida</th><th class="num">Resultado</th>
+        <th>Referência aplicada</th><th>Avaliação</th></tr></thead>
+      <tbody>${linhas || total}${linhas ? total : ''}</tbody></table>`;
+  }
+
+  const contexto = [];
+  if (feito && !reg.na && ens.N != null)
+    contexto.push(`Coeficiente ${num(ens.N,3)} · U ± ${num(ens.Urel,1)} % (k = 2)`);
+  if (feito && !reg.na && (ens.campos || []).length){
+    (ens.campos || []).forEach(cp=>{
+      const valor = (reg.campos && reg.campos[cp.id] != null) ? reg.campos[cp.id] : cp.valor;
+      contexto.push(`${cp.rot}: ${cp.tipo === 'opcao' ? ((cp.rotulos && cp.rotulos[valor]) || valor)
+                                 : String(valor).replace('.', ',') + ' ' + (cp.unidade || '')}`);
+    });
+  }
+  const nota = (feito && !reg.na && reg.obs)
+    ? 'Observação em campo — ' + reg.obs : '';
+
+  /* Título, parâmetros e tabela são uma coisa só: na impressão o bloco inteiro
+     passa para a folha seguinte em vez de partir no meio. */
+  return `<div class="bloco-res">
+    <h4><span class="num">${esc(numero)}</span>${esc(ens.nome)}</h4>
+    ${contexto.length ? `<p class="aq-linha">Parâmetros do ensaio — ${esc(contexto.join(' · '))}</p>` : ''}
+    <div class="tab-scroll">${tabela}</div>
+    ${nota ? `<p class="nota-marca">${esc(nota)}</p>` : ''}
+  </div>`;
+}
+
+function telaLaudo(){
+  const eq = equipAtual(), inst = instDe(eq);
+  const v  = visita(eq.id);
+  const p  = progressoEquip(eq.id);
+
+  const achados = [], naoAplicaveis = [], limitrofes = [];
+  ENSAIOS.forEach(ens=>{
+    const reg = v.resultados[ens.id];
+    if (!reg || !reg.concluido) return;
+    const c = calcular(ens, reg);
+    if (c.situacao === 'nconf' || c.situacao === 'restr') achados.push({ens, c, reg});
+    if (c.situacao === 'na')  naoAplicaveis.push({ens});
+    if (c.situacao === 'lim') limitrofes.push({ens, c});
+  });
+  const pends = p.contagem.pend || 0;
+
+  /* Instrumentos efetivamente usados nesta visita. */
+  const usados = {};
+  ENSAIOS.forEach(e=>{
+    const r = v.resultados[e.id];
+    if (r && r.concluido && !r.na) usados[e.instr] = true;
+  });
+  /* Ensaio acrescentado pelo serviço pode apontar para um tipo de instrumento
+     que ninguém cadastrou. A linha some da tabela em vez de derrubar o laudo
+     inteiro: relatório que não abre é pior que relatório com uma linha a
+     menos, e a ausência aparece no ensaio, que fica sem instrumento. */
+  const instrLinhas = Object.keys(usados).map(k=>{
+    const i = INSTRUMENTOS[k];
+    if (!i) return '';
+    return `<tr><td>${esc(i.nome)}</td><td>${esc(i.modelo)}</td><td class="mono">${esc(i.serie)}</td>
+            <td>${esc(i.cert)}</td><td>${esc(i.validade)}</td><td>${esc(i.rastreab)}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--faint)">Nenhum ensaio concluído nesta visita.</td></tr>';
+
+  /* --- descrição dos ensaios: gerada da mesma lista que monta o roteiro --- */
+  const descricoes = ENSAIOS.map(e=>`
+    <div class="teste-desc">
+      <h5>${esc(e.nome)}</h5>
+      <p>${esc(e.ajuda)}${e.nota ? ' ' + esc(e.nota) : ''}</p>
+      <div class="tol-box">
+        <div class="cab">Tolerância IN - 95</div>
+        <div class="val">${esc(e.tolTexto)}</div>
+        <div class="cab">Nível de restrição</div>
+        <div class="val">${esc(e.restrTexto || 'Não estabelecido no Anexo I')}</div>
+      </div>
+    </div>`).join('');
+
+  /* --- resultados por grupo de ensaios ----------------------------------- */
+  const corpo = GRUPOS.map((g,i)=>{
+    const lista = ENSAIOS.filter(e => e.grupo === g.id);
+    if (!lista.length) return '';
+    const n = i + 1;
+    const blocos = lista.map((e,j)=> blocoEnsaio(e, v, n + '.' + (j+1) + '.')).join('');
+    return `<section class="bloco">
+      <h3 class="sec-tit">${n}. Grupo de ensaios:
+        <b>${esc(g.nome)}</b>
+        <span class="slot mono">${lista.length} ${lista.length === 1 ? 'ensaio' : 'ensaios'}</span></h3>
+      ${blocos}
+    </section>`;
+  }).join('');
+
+  const parecerClasse = p.contagem.restr > 0 ? 'restr' : (p.contagem.nconf > 0 ? 'nconf' : 'conf');
+  const conclusao = pends
+    ? `<div class="parecer">
+         <b>Visita em andamento — ${pends} ensaio(s) ainda não realizados.</b>
+         <p>A conclusão é emitida quando o roteiro fechar. O que já foi medido aparece
+         avaliado acima.</p></div>`
+    : parecerClasse === 'restr'
+    ? `<div class="parecer restr">
+         <b>Equipamento com ensaio(s) em nível de restrição.</b>
+         <p>Um ou mais ensaios atingiram o nível de restrição definido no Anexo I da
+         Instrução Normativa nº 95/2021. Recomenda-se a restrição imediata do uso clínico do
+         equipamento até a correção e a reavaliação dos ensaios reprovados, com registro da
+         providência no programa de garantia da qualidade do serviço.</p></div>`
+    : parecerClasse === 'nconf'
+    ? `<div class="parecer nconf">
+         <b>${achados.length} ensaio(s) apresentam avaliação fora dos padrões estabelecidos.</b>
+         <p>Os ensaios listados abaixo excederam a tolerância do Anexo I sem atingir o nível de
+         restrição. O uso clínico pode prosseguir mediante plano de correção formalizado, com
+         reavaliação dos itens reprovados após a intervenção técnica.</p></div>`
+    : `<div class="parecer conf">
+         <b>Os ensaios apresentam avaliação dentro dos padrões estabelecidos.</b>
+         <p>Todos os ensaios realizados atenderam às tolerâncias do Anexo I da Instrução
+         Normativa nº 95/2021, dentro das incertezas declaradas dos instrumentos utilizados.
+         Mantém-se a periodicidade prevista para os próximos ensaios.</p></div>`;
+
+  const listaAchados = achados.map(({ens,c,reg})=>
+    `<div class="nc"><span class="chip c-${c.situacao}">${ROTULOS_DOC[c.situacao]}</span>
+      <div class="cnt"><b>${esc(ens.nome)} — ${esc(c.texto)}</b>
+      <p>Tolerância: ${esc(ens.tolTexto)}. Providência recomendada: ${esc(ens.acao || 'reavaliar após intervenção técnica.')}${
+        reg && reg.obs ? ' Observação em campo: ' + esc(reg.obs) : ''}</p></div></div>`).join('');
+
+  const dataVisita = v.data || hoje();
+
+  topo({voltar:'roteiro', titulo:'Relatório de CQ',
+        sub:(eq.relatorio ? eq.relatorio + ' · ' : '') + eq.marca + ' ' + eq.modelo});
+
+  el('vista').innerHTML = `
+    <div style="height:12px"></div>
+
+    <article class="laudo anima">
+
+      <div class="capa">
+        <div class="logo" aria-hidden="true">${MARCA}</div>
+        <div class="capa-num">${eq.relatorio ? 'No. ' + esc(eq.relatorio) : 'Relatório sem número'}</div>
+        <div class="capa-cat">${esc(eq.setor) || 'Odontologia'}</div>
+        <h1>Relatório de Controle de Qualidade ${esc(eq.periodicidade)}</h1>
+        <div class="capa-eq">${esc(eq.marca)} — ${esc(eq.modelo)}
+          <span>N/S: ${esc(eq.ns)}</span><span>${esc(eq.id)}</span></div>
+        <div class="capa-cli">${esc(inst.nome)}</div>
+        <div class="capa-ano mono">${esc(dataVisita.slice(-4))}</div>
+        <div class="capa-rod">Elaborado por<br>
+          <b>${esc(EMISSOR.razao)}</b><br>${esc(EMISSOR.endereco)}<br>${esc(EMISSOR.contato)}</div>
+      </div>
+
+      ${cabecaDoc(eq)}
+      <span class="aviso-demo">Demonstração — dados ilustrativos de coleta</span>
+
+      <section>
+        <h3>Cadastro</h3>
+        <div class="dl">
+          <div><span>Instituição</span><b>${esc(inst.nome)}</b></div>
+          <div><span>CNPJ</span><b class="mono">${esc(inst.cnpj) || '—'}</b></div>
+          <div><span>Endereço</span><b>${esc(inst.endereco) || '—'}</b></div>
+          <div><span>Cidade</span><b>${esc(inst.cidade)}${inst.cep ? ' · ' + esc(inst.cep) : ''}</b></div>
+          <div><span>Telefone</span><b>${esc(inst.telefone) || '—'}</b></div>
+          <div><span>Responsável técnico</span><b>${esc(inst.rt) || '—'}</b></div>
+          <div><span>Licença sanitária</span><b>${esc(inst.alvara) || '—'}</b></div>
+          <div><span>Unidade</span><b>${esc(eq.unidade) || '—'}</b></div>
+          <div><span>Setor / sala</span><b>${esc(eq.setor)} · ${esc(eq.sala) || '—'}</b></div>
+          <div><span>Categoria</span><b>Radiologia odontológica intraoral</b></div>
+          <div><span>Equip. Mod.</span><b>${esc(eq.marca)} ${esc(eq.modelo)}</b></div>
+          <div><span>Código</span><b class="mono">${esc(eq.id)}</b></div>
+          <div><span>N/S</span><b class="mono">${esc(eq.ns)}</b></div>
+          <div><span>Patrimônio</span><b class="mono">${esc(eq.patrimonio) || '—'}</b></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Objetivo</h3>
+        <p class="prosa">${esc(NORMA.objetivo.replace(/\s+/g,' ').trim())}</p>
+        <div class="dl" style="margin-top:16px">
+          <div><span>Data da realização das medidas</span><b>${esc(dataVisita)}</b></div>
+          <div><span>Data de validade</span><b>${esc(validadeDe(dataVisita))}</b></div>
+          <div><span>Natureza da avaliação</span><b>${esc(v.tipo)}</b></div>
+          <div><span>Ensaios do Anexo I realizados</span><b class="mono">${p.feitos} de ${p.total}</b></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Introdução</h3>
+        ${NORMA.introducao.map(t=>`<p class="prosa">${esc(t.replace(/\s+/g,' ').trim())}</p>`).join('')}
+      </section>
+
+      <section>
+        <h3>Descrição dos ensaios e limites estabelecidos pela IN-95</h3>
+        ${descricoes}
+      </section>
+
+      <section>
+        <h3>Referências</h3>
+        <ul>${NORMA.referencias.map(r=>`<li>${esc(r.replace(/\s+/g,' ').trim())}</li>`).join('')}</ul>
+      </section>
+
+      <section>
+        <h3>Equipamento utilizado</h3>
+        <div class="tab-scroll"><table>
+          <thead><tr><th>Instrumento</th><th>Modelo</th><th>Série</th><th>Certificado</th>
+            <th>Validade</th><th>Rastreabilidade</th></tr></thead>
+          <tbody>${instrLinhas}</tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <h3>Definição dos parâmetros de avaliação</h3>
+        <div class="defin">${NORMA.definicoes.map(([k,t])=>
+          `<p><b>${esc(k)}:</b> ${esc(t.replace(/\s+/g,' ').trim())}</p>`).join('')}</div>
+      </section>
+
+      <section>
+        <h3>Identificação do conjunto emissor</h3>
+        <div class="tab-scroll"><table>
+          <thead><tr><th>Conjunto emissor</th><th>Localizador</th><th>Ano</th>
+            <th class="num">kVp máx.</th><th class="num">mA máx.</th>
+            <th>Filtração total</th><th>Receptor</th><th>Instalação</th></tr></thead>
+          <tbody><tr><td>${esc(tuboDe(eq))}</td><td>${esc(eq.localizador) || '—'}</td>
+            <td class="mono">${esc(eq.anoFab) || '—'}</td>
+            <td class="num mono">${esc(eq.kvpMax) || '—'}</td>
+            <td class="num mono">${esc(eq.maMax) || '—'}</td>
+            <td>${esc(eq.filtracao)}</td><td>${esc(eq.tecnologia)}</td>
+            <td>${esc(eq.tipo)}</td></tr></tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <h3>Vistoria de radioproteção</h3>
+        ${tabelaInspecao(INSPECAO_EQUIP, v.inspecao, v.inspObs, VISTORIA)}
+        <p class="prosa" style="margin-top:12px">${esc(NOTA_EPI.replace(/\s+/g,' ').trim())}</p>
+      </section>
+
+      <section>
+        <h3>Como as avaliações foram obtidas</h3>
+        <p class="prosa">${p.feitos === 0
+          ? `Nenhuma leitura registrada nesta visita. O relatório já traz o cadastro, o
+             conjunto emissor e a estrutura dos ${ENSAIOS.length} ensaios do Anexo I — as tabelas se
+             preenchem conforme a coleta avança.`
+          : `As leituras brutas foram ${ESTADO.corrigir ? 'corrigidas' : '<strong>não corrigidas</strong>'}
+             pelo coeficiente de calibração do certificado de cada instrumento antes da
+             comparação com os limites. A incerteza expandida (k = 2) é cruzada com o limite
+             normativo de cada ensaio: quando a barra de incerteza cobre o limite, o resultado
+             sai como <strong>limítrofe</strong> e não é computado como não conformidade.
+             ${limitrofes.length ? '<strong>' + limitrofes.length + ' ensaio(s)</strong> saíram limítrofes neste relatório.'
+                                 : 'Nenhum ensaio saiu limítrofe neste relatório.'}`}</p>
+      </section>
+
+      <section><h3>Resultados:</h3></section>
+      ${corpo}
+      ${graficoSecao(v)}
+
+      <section>
+        <h3>Conclusão</h3>
+        ${conclusao}
+        ${achados.length ? '<div style="margin-top:16px">' + listaAchados + '</div>' : ''}
+        ${naoAplicaveis.length ? `<p class="prosa" style="margin-top:16px">
+          <b>${naoAplicaveis.length} ensaio(s) marcados como não aplicáveis:</b>
+          ${esc(naoAplicaveis.map(({ens}) => ens.nome).join('; '))}.
+          A justificativa de cada um consta na coluna de observações do ensaio
+          correspondente.</p>` : ''}
+        ${limitrofes.length ? `<p class="prosa" style="margin-top:16px">
+          <b>${limitrofes.length} ensaio(s) saem como limítrofes</b> — a barra de incerteza do
+          instrumento cobre o limite normativo. Repetir a medição com incerteza menor resolve
+          a indefinição.</p>` : ''}
+        <p class="prosa" style="margin-top:16px">${esc(NORMA.conclusaoBase.replace(/\s+/g,' ').trim())}</p>
+        <p class="prosa" style="margin-bottom:4px">Recomendações ao serviço:</p>
+        <ul>${NORMA.recomendacoes.map(r=>`<li>${esc(r.replace(/\s+/g,' ').trim())}</li>`).join('')}</ul>
+
+        <p class="prosa" style="margin-top:22px">${esc(inst.cidade)}, ${esc(dataVisita)}.</p>
+        <div class="assinaturas">
+          <div class="assin"><b>${esc(RESPONSAVEL.nome)}</b>${esc(NORMA.assinaturas[0])}<br>
+            ${esc(RESPONSAVEL.registro)}</div>
+          <div class="assin"><b>${esc(inst.rt) || '—'}</b>${esc(NORMA.assinaturas[1])}<br>
+            Ciência dos resultados em ____ / ____ / ______</div>
+        </div>
+        <p class="nota-icp">${esc(NORMA.icp.replace(/\s+/g,' ').trim())}</p>
+      </section>
+    </article>
+
+    ${acaoFixa(`
+      <button class="bt" id="btJson">Pacote de sincronização</button>
+      <button class="bt" id="btXlsx">Exportar planilha</button>
+      <button class="bt principal" id="btImp">Imprimir / salvar em PDF</button>`)}`;
+
+  el('btImp').addEventListener('click', ()=> window.print());
+  el('btJson').addEventListener('click', ()=> ir('sync'));
+  el('btXlsx').addEventListener('click', function(){ exportarPlanilha(eq.id, this); });
+}
+
+/* Gráfico de desvios por estação, em SVG puro — sem biblioteca externa,
+   para que o relatório abra e imprima sem rede. */
+function graficoSecao(v){
+  const alvo = ['kvp_exat','tempo_exat'].find(id=>{
+    const r=v.resultados[id]; return r && r.concluido && !r.na;
+  });
+  if (!alvo) return '';
+  const ens=POR_ID[alvo];
+  const c=calcular(ens, v.resultados[alvo]);
+  const pts=c.porEstacao.filter(p=>p.valor!=null);
+  if (pts.length<2) return '';
+
+  const W=680, H=200, mL=46, mR=14, mT=16, mB=34;
+  const iw=W-mL-mR, ih=H-mT-mB;
+  const restr = ens.lim.restr || ens.lim.tol*2;
+  const vals = pts.map(p=>p.valor);
+  /* Domínio assimétrico: cada lado recebe só a altura de que precisa, mas nunca
+     menos que a faixa de tolerância — senão o limite sai do gráfico. */
+  const hiV = Math.max(0, Math.max.apply(null, vals));
+  const loV = Math.min(0, Math.min.apply(null, vals));
+  const topo = Math.max(hiV*1.28, ens.lim.tol*1.35, hiV>ens.lim.tol ? restr*1.06 : 0);
+  const base = Math.max(-loV*1.28, ens.lim.tol*1.35, -loV>ens.lim.tol ? restr*1.06 : 0);
+  const yZero = mT + ih*topo/(topo+base);
+  const cortar = v => Math.min(mT+ih, Math.max(mT, v));
+  const y = val => cortar(val>=0 ? yZero - (val/topo)*(yZero-mT)
+                                 : yZero + (-val/base)*(mT+ih-yZero));
+  const bw = Math.min(48, iw/pts.length*0.5);
+  const dentro = val => val<=topo && val>=-base;
+
+  const faixa = (a,b,cor) => `<rect x="${mL}" y="${y(b).toFixed(1)}" width="${iw}"
+     height="${Math.max(0,y(a)-y(b)).toFixed(1)}" fill="${cor}"/>`;
+
+  const barras = pts.map((p,i)=>{
+    const cx = mL + iw*(i+0.5)/pts.length;
+    const yb = y(p.valor);
+    const cor = p.situacao==='conf'?'var(--ok)':p.situacao==='nconf'?'var(--warn)':p.situacao==='restr'?'var(--bad)':'var(--info)';
+    return `<rect x="${(cx-bw/2).toFixed(1)}" y="${Math.min(yZero,yb).toFixed(1)}" width="${bw.toFixed(1)}"
+              height="${Math.max(1.5,Math.abs(yb-yZero)).toFixed(1)}" rx="3" fill="${cor}" opacity=".85"/>
+            <text x="${cx.toFixed(1)}" y="${(yb + (p.valor>=0?-7:15)).toFixed(1)}" text-anchor="middle"
+              font-size="10.5" fill="var(--muted)" font-family="JetBrains Mono, ui-monospace, monospace">${sinal(p.valor,1)}%</text>
+            <text x="${cx.toFixed(1)}" y="${(H-11).toFixed(1)}" text-anchor="middle"
+              font-size="10.5" fill="var(--faint)">${esc(p.rot)}</text>`;
+  }).join('');
+
+  const linha = (val,cor) => !dentro(val) ? '' :
+    `<line x1="${mL}" x2="${W-mR}" y1="${y(val).toFixed(1)}" y2="${y(val).toFixed(1)}"
+       stroke="${cor}" stroke-width="1" stroke-dasharray="4 4"/>
+     <text x="${mL-6}" y="${(y(val)+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--faint)"
+       font-family="JetBrains Mono, ui-monospace, monospace">${sinal(val,0)}%</text>`;
+
+  return `<section>
+    <h3>Desvios por estação — ${esc(ens.nome).toLowerCase()}</h3>
+    <svg class="grafico-svg" viewBox="0 0 ${W} ${H}" role="img"
+         aria-label="Desvio percentual por estação, com faixas de tolerância e de nível de restrição">
+      ${faixa(ens.lim.tol, restr, 'var(--warn-soft)')}
+      ${faixa(-restr, -ens.lim.tol, 'var(--warn-soft)')}
+      ${faixa(restr, topo, 'var(--bad-soft)')}
+      ${faixa(-base, -restr, 'var(--bad-soft)')}
+      <line x1="${mL}" x2="${W-mR}" y1="${yZero.toFixed(1)}" y2="${yZero.toFixed(1)}" stroke="var(--border-2)" stroke-width="1"/>
+      ${linha(ens.lim.tol,'var(--warn)')}${linha(-ens.lim.tol,'var(--warn)')}
+      ${linha(restr,'var(--bad)')}${linha(-restr,'var(--bad)')}
+      ${barras}
+    </svg>
+    <div class="legenda">
+      <span><i style="background:var(--warn)"></i>tolerância ${esc(ens.tolTexto)}</span>
+      <span><i style="background:var(--bad)"></i>nível de restrição ${esc(ens.restrTexto)}</span>
+      <span>${esc(c.formula)}</span>
+    </div>
+  </section>`;
+}
+
+function pacote(f){
+  const ens=POR_ID[f.ensaio];
+  const reg=BD.visitas[f.equip].resultados[f.ensaio];
+  const c=calcular(ens, reg);
+  const eq=EQUIPAMENTOS.find(e=>e.id===f.equip);
+  const instr=INSTRUMENTOS[ens.instr] || {modelo:null, serie:null, cert:null, validade:null};
+  return {
+    norma:'ANVISA IN 95/2021',
+    equipamento:{id:eq.id, serie:eq.ns, instituicao:instDe(eq).nome},
+    ensaio:{id:ens.id, nome:ens.nome, aplicabilidade:ens.aplic, periodicidade:ens.period},
+    coleta:{data:BD.visitas[f.equip].data, hora:hora(f.ts), leiturasBrutas:reg.leituras,
+            parametros:reg.campos, observacao:reg.obs || null, naoAplicavel:!!reg.na},
+    instrumento:{modelo:instr.modelo, serie:instr.serie, certificado:instr.cert,
+                 validade:instr.validade, coeficiente:ens.N!=null?ens.N:null,
+                 incertezaExpandidaPercent:ens.Urel!=null?ens.Urel:null, fatorAbrangencia:2},
+    resultado:{valor:c.valor, unidade:ens.unidade || null, texto:c.texto,
+               tolerancia:ens.tolTexto, nivelRestricao:ens.restrTexto || null,
+               situacao:c.situacao, formula:c.formula,
+               porEstacao:c.porEstacao.map(p=>({estacao:p.rot, valor:p.valor, situacao:p.situacao}))}
+  };
+}
+
+function enviarFila(){
+  if (!ESTADO.online || !BD.fila.length) return;
+  ESTADO.sincronizando=true; render();
+  /* Envio simulado: em produção, um POST por lote com reenvio idempotente. */
+  setTimeout(()=>{
+    BD.enviados += BD.fila.length;
+    BD.fila = [];
+    ESTADO.sincronizando=false;
+    persistir(); render();
+  }, 900);
+}
+
+
+/* ==========================================================================
+   11. Dados de demonstração
+   ========================================================================== */
+
+/* Conjunto conforme, usado como linha de base para todos os equipamentos. */
+/* Conjunto conforme, usado como linha de base para todos os equipamentos.
+   É o perfil do ODI-01: sensor de estado sólido, sem filme e sem placa de
+   fósforo — daí a câmara escura e o ciclo de apagamento entrarem como não
+   aplicáveis, e não como pendência. */
+const BASE_DEMO = {
+  campo:{leituras:[[5.4]]},
+  dfp:{leituras:[[30.2]]},
+  csr:{campos:{kvp:70}, leituras:[[1.82]]},
+  kvp_exat:{leituras:[[60.4,60.7,60.2],[70.6,70.9,70.4]]},
+  tempo_exat:{leituras:[[102.4,103.1,101.8],[204.6,205.2,203.9],
+                        [326.4,327.8,325.1],[508.2,509.6,507.4]]},
+  kerma_linear:{leituras:[[126.4],[252.8],[506.2],[758.4]]},
+  kerma_repro:{leituras:[[506.2,508.4,505.1,507.3,506.8]]},
+  artefatos:{resultado:'conf'},
+  apagamento:{resultado:'na', na:true},
+  qualidade_img:{resultado:'conf', campos:{res:8, contraste:5}},
+  camara_escura:{resultado:'na', na:true},
+  dose_rep:{leituras:[[1.82,1.86,1.79]]},
+  epi:{resultado:'conf'},
+  radiometrico:{leituras:[[0.18],[0.07],[0.11],[2.4]]},
+  fuga:{leituras:[[0.082]]}
+};
+
+/* Perfis por equipamento: o RX-03 chega com achados, para a conversa ter assunto. */
+/* Perfis por equipamento. O ODI-02 mostra o caso limítrofe — a barra de
+   incerteza cobrindo o limite — e o ODI-03 chega com achados, para a conversa
+   ter assunto. */
+const PERFIS_DEMO = {
+  'ODI-01':{},
+
+  'ODI-02':{
+    /* Placa de fósforo: o ciclo de apagamento passa a valer; a câmara escura
+       continua fora, porque o serviço não processa filme. */
+    apagamento:{resultado:'conf', na:false},
+    csr:{campos:{kvp:70}, leituras:[[1.58]]},
+    /* Dose logo abaixo de 3,5 mGy: com a incerteza da câmara, o ensaio não dá
+       para afirmar nem negar, e sai limítrofe em vez de virar aprovação que a
+       medição não sustenta. */
+    dose_rep:{leituras:[[3.44,3.47,3.42]]},
+    kerma_repro:{leituras:[[498.2,512.6,504.1,516.8,495.4]]}
+  },
+
+  'ODI-03':{
+    /* Serviço que ainda revela filme: a câmara escura passa a valer e o ciclo
+       de apagamento continua fora. */
+    camara_escura:{resultado:'conf', na:false},
+    /* Cone curto de 20 cm num aparelho de 2009: campo aberto demais, distância
+       foco-pele abaixo do mínimo do art. 2º e filtração insuficiente. */
+    campo:{leituras:[[7.2]]},
+    dfp:{leituras:[[18.6]]},
+    csr:{campos:{kvp:60}, leituras:[[0.94]]},
+    kvp_exat:{leituras:[[57.4,57.9,57.1],[66.8,67.4,66.2]]},
+    tempo_exat:{leituras:[[131.6,133.2,130.4],[248.4,250.1,247.2],
+                          [382.6,384.9,381.2],[586.4,588.2,585.1]]},
+    kerma_linear:{leituras:[[58.2],[119.4],[246.8],[402.6]]},
+    dose_rep:{leituras:[[4.62,4.71,4.58]]},
+    epi:{resultado:'nconf'},
+    fuga:{leituras:[[0.31]]},
+    radiometrico:{leituras:[[0.34],[0.11],[0.62],[3.1]]}
+  }
+};
+
+/* --------------------------------------------------------------------------
+   Geração de medidas de exemplo, ensaio a ensaio
+
+   O acervo acima cobre as estações do rol. Quando o usuário troca os pontos de
+   medida — outro kV, outro mAs, mais uma espessura de PMMA — a leitura
+   arquivada daquela estação deixa de fazer sentido, e o valor é sintetizado em
+   torno do novo nominal. Assim o botão de exemplo continua honesto depois de
+   qualquer ajuste na técnica.
+   -------------------------------------------------------------------------- */
+
+const jitter = (a, b) => a + Math.random() * (b - a);
+
+function leiturasSinteticas(ens, est, i, fonte){
+  const n = Math.max(1, ens.repeticoes || 1);
+  const casas = ens.casasBrutas != null ? ens.casasBrutas : 2;
+  const arquivo = fonte.leituras || [];
+  let centro;
+
+  if (ens.tipo === 'linear' && est.nominal != null){
+    /* Na linearidade a estação é o mAs e a leitura é o kerma: o centro sai do
+       rendimento por mAs que o acervo já traz. */
+    const base0 = (arquivo[0] || [])[0];
+    const nom0  = ((ens.estacoes || [])[0] || {}).nominal;
+    const porMas = (base0 && nom0) ? base0 / nom0 : 51;
+    centro = est.nominal * porMas;
+  }
+  else if (est.nominal != null){
+    centro = est.nominal;
+  }
+  else {
+    const arq = (arquivo[i] && arquivo[i].length) ? arquivo[i] : (arquivo[0] || []);
+    centro = arq.length ? media(arq) : 1;
+    /* Ponto de área controlada acrescentado à mão fica na ordem de grandeza da
+       sala de exame, não a de um corredor. */
+    if (ens.tipo === 'radiom' && est.area === 'controlada' && !(arquivo[i] || []).length)
+      centro = Math.max.apply(null, arquivo.map(a => (a || [])[0] || 0).concat([centro]));
+  }
+
+  const disp = ens.tipo === 'repro' ? 0.006 : 0.004;
+  return Array.from({length:n}, ()=>
+    +(centro * jitter(1 - disp, 1 + disp)).toFixed(casas));
+}
+
+/* Preenche um ensaio com o acervo de demonstração e o marca como concluído.
+   É o que o botão dentro do ensaio chama, e também o que a demonstração do
+   equipamento inteiro repete para cada item do roteiro. */
+function gerarMedidasEnsaio(eqId, ensId){
+  const ens = POR_ID[ensId];
+  const reg = registro(eqId, ensId);
+  const base = BASE_DEMO[ensId] || {};
+  const over = (PERFIS_DEMO[eqId] || {})[ensId] || {};
+  const fonte = Object.assign({}, base, over);
+
+  reg.campos = Object.assign({}, valoresPadrao(ens), base.campos || {}, over.campos || {});
+  reg.obs = fonte.obs || '';
+  reg.na  = !!fonte.na;
+  if (fonte.resultado !== undefined) reg.resultado = fonte.resultado;
+
+  if (ens.tipo !== 'qualit'){
+    const est = estacoesDe(ens, reg);
+    const padrao = ens.estacoes || [];
+    reg.leituras = est.map((e,i)=>{
+      const pronta = (fonte.leituras || [])[i];
+      /* A leitura arquivada só serve se a estação continuar sendo a mesma. */
+      const mesma = padrao[i] && (padrao[i].nominal == null || padrao[i].nominal === e.nominal);
+      return (pronta && pronta.length && mesma)
+        ? pronta.slice()
+        : leiturasSinteticas(ens, e, i, fonte);
+    });
+  }
+
+  reg.concluido = true;
+  reg.ts = Date.now();
+  enfileirar(eqId, ensId);
+  return reg;
+}
+
+/* Devolve o ensaio ao estado de folha em branco, com as estações que o usuário
+   configurou — limpar a coleta não desfaz a técnica escolhida. */
+function limparEnsaio(eqId, ensId){
+  const ens = POR_ID[ensId];
+  const v = visita(eqId);
+  const reg = registro(eqId, ensId);
+  const est = estacoesDe(ens, reg);
+  v.resultados[ensId] = {
+    leituras: est.length ? est.map(()=>[]) : [[]],
+    estacoes: reg.estacoes,
+    campos: valoresPadrao(ens),
+    resultado:null, obs:'', na:false, concluido:false, ts:null
+  };
+  BD.fila = BD.fila.filter(f => !(f.equip === eqId && f.ensaio === ensId));
+}
+
+/* Achados de vistoria do acervo de demonstração. A chave é um trecho do item,
+   e não a posição na lista: reordenar a vistoria não embaralha os achados, e
+   trecho que não casa com item nenhum simplesmente não produz achado — nunca
+   derruba a demonstração. */
+const VISTORIA_DEMO = {
+  'ODI-03':[
+    {contem:'Cabo disparador de 2 m',
+     obs:'Disparador com cabo de 1,2 m; o operador dispara ao lado do cabeçote.'},
+    {contem:'Posicionador de receptor',
+     obs:'Sem posicionador: o paciente segura o filme com o dedo.'},
+    {contem:'Protetor de tireoide',
+     obs:'Protetor de tireoide não disponível no consultório.'}
+  ]
+};
+
+function preencherDemo(eqId){
+  const v = visita(eqId);
+  ENSAIOS.forEach(ens => gerarMedidasEnsaio(eqId, ens.id));
+  v.inspecao = {};
+  v.inspObs = {};
+  INSPECAO_EQUIP.forEach(i => v.inspecao[i] = 'Conforme');
+  (VISTORIA_DEMO[eqId] || []).forEach(function(achado){
+    const item = INSPECAO_EQUIP.find(function(i){ return i.indexOf(achado.contem) >= 0; });
+    if (!item) return;
+    v.inspecao[item] = 'Não conforme';
+    v.inspObs[item] = achado.obs;
+  });
+  v.data = hoje();
+}
+
+/* ==========================================================================
+   11. Sincronização com o sistema de laudos
+   ========================================================================== */
+
+function telaSync(){
+  const TETO = 12;
+  const fila = BD.fila.slice().reverse();
+  const itens = (fila.slice(0, TETO).map(f=>`
+    <div class="fila-item">
+      <span class="chip c-pend">na fila</span>
+      <span>${esc(f.equip)} · ${esc(f.nome)}</span>
+      <span class="t mono">${hora(f.ts)}</span>
+    </div>`).join('') + (fila.length > TETO
+      ? `<p class="vazio-msg">e mais ${fila.length - TETO} ensaio(s) aguardando envio</p>` : ''))
+    || '<p class="vazio-msg">nada pendente — tudo sincronizado</p>';
+
+  const amostra = BD.fila.length ? pacote(BD.fila[BD.fila.length - 1]) : null;
+  const anterior = ESTADO.equip ? 'roteiro' : (ESTADO.hosp ? 'parque' : 'instituicoes');
+
+  topo({voltar:anterior, titulo:'Sincronização',
+        sub:`${BD.fila.length} na fila · ${BD.enviados} enviado(s) nesta sessão`});
+
+  el('vista').innerHTML = `
+    <div style="margin:16px 0 4px">
+      <h1>Fila local</h1>
+      <div class="sub">${BD.fila.length} ensaio(s) guardados no aparelho ·
+        ${ESTADO.online ? 'conectado' : 'sem rede'}</div>
+    </div>
+
+    <div class="fila">${itens}</div>
+
+    ${amostra ? `<p class="rotulo">Pacote enviado por ensaio</p>
+      <pre class="payload">${esc(JSON.stringify(amostra, null, 2))}</pre>
+      <p class="sub" style="margin-top:10px; max-width:70ch">
+        Cada ensaio viaja com leitura bruta, coeficiente de calibração, incerteza, limites
+        aplicados e a classificação já resolvida — o sistema de laudos recebe o resultado
+        pronto para compor o relatório, sem recalcular nada.</p>` : ''}
+
+    ${acaoFixa(`
+      ${ESTADO.equip ? '<button class="bt" id="btXlsxSync">Exportar planilha</button>' : ''}
+      <button class="bt" id="btAlternar">${ESTADO.online ? 'Simular perda de rede' : 'Simular volta da rede'}</button>
+      <button class="bt principal" id="btEnviar"
+        ${(!ESTADO.online || !BD.fila.length || ESTADO.sincronizando) ? 'disabled' : ''}>
+        ${ESTADO.sincronizando ? 'Enviando…' : 'Enviar fila'}</button>`)}`;
+
+  const bx = el('btXlsxSync');
+  if (bx) bx.addEventListener('click', function(){ exportarPlanilha(ESTADO.equip, this); });
+  el('btAlternar').addEventListener('click', ()=>{ ESTADO.online = !ESTADO.online; render(); });
+  el('btEnviar').addEventListener('click', enviarFila);
+}
+
+/* ==========================================================================
+   12. Sobre
+   ========================================================================== */
+
+function telaSobre(){
+  const anterior = ESTADO.equip ? 'roteiro' : (ESTADO.hosp ? 'parque' : 'instituicoes');
+  topo({voltar:anterior, titulo:'Sobre a demonstração',
+        sub:'Protótipo navegável · não é o sistema em produção'});
+
+  el('vista').innerHTML = `
+    <div style="height:14px"></div>
+
+    <div class="card pad">
+      <p class="prosa">Roda inteira dentro de um arquivo HTML, sem servidor e sem rede.
+      O parque de demonstração tem três equipamentos intraorais, distribuídos em três
+      instituições — um hospital, uma clínica e uma unidade de pronto atendimento —, e cada
+      um com uma tecnologia de receptor diferente: sensor de estado sólido, placa de fósforo
+      e filme. Não é enfeite: é o que decide quais ensaios do Anexo I se aplicam a cada um.</p>
+      <p class="prosa"><strong>As visitas abrem em branco.</strong> O cadastro do parque —
+      instituição, equipamento, conjunto emissor, receptor — vem pronto, porque é dado de
+      acervo e não muda a cada visita. As leituras não: cada uma começa vazia, com o roteiro
+      dos ${ENSAIOS.length} ensaios do Anexo I montado e os campos esperando digitação. É assim
+      que o coletor chega no consultório.</p>
+      <p class="prosa">O botão <strong>Preencher exemplo</strong> — na tela inicial, ou no
+      rodapé de cada equipamento — despeja um acervo de leituras por cima, para ver o roteiro
+      cheio e o relatório fechado. O aparelho da UPA, de 2009 e com cone curto, chega com
+      achados. Dentro de cada ensaio há o mesmo botão para um item só, ao lado do de
+      <strong>limpar este ensaio</strong>: dá para abrir um ensaio em branco, mostrar a coleta
+      à mão e preencher o resto com um toque.</p>
+    </div>
+
+    <p class="rotulo">O que o coletor faz no consultório</p>
+    <div class="card pad">
+      <p class="prosa">A navegação tem três níveis — <strong>instituição → equipamento →
+      ensaio</strong>. É a mesma ordem dos coletores de radiografia e de ultrassom: primeiro
+      onde, depois o quê.</p>
+      <p class="prosa">Cada ensaio traz do próprio Anexo I a aplicabilidade, a periodicidade,
+      a tolerância e o nível de restrição, e o teclado numérico da tela grava as repetições
+      previstas por estação de medida. <strong>As estações são editáveis</strong>: a norma diz
+      o que medir e com que tolerância, não em que pontos — um aparelho de tensão fixa tem uma
+      estação de kVp só, e os tempos do seletor mudam de fabricante para fabricante. O
+      resultado é calculado e classificado na hora: desvio percentual, coeficiente de
+      variação, linearidade do kerma por mAs, camada semirredutora comparada ao Anexo II e
+      levantamento radiométrico por tipo de área.</p>
+      <p class="prosa">A leitura bruta é corrigida pelo coeficiente do certificado de
+      calibração antes de qualquer comparação, e a incerteza expandida (k = 2) é cruzada com
+      o limite: quando a barra cobre o limite, o ensaio sai como <strong>limítrofe</strong> em
+      vez de virar uma aprovação ou uma reprovação que a medição não sustenta. O equipamento
+      da clínica mostra isso no valor representativo de dose.</p>
+    </div>
+
+    <p class="rotulo">Onde o número do limite nasce</p>
+    <div class="card pad">
+      <p class="prosa">Doze dos quinze ensaios têm tolerância escrita no Anexo I. Três não:
+      <strong>tamanho de campo</strong>, <strong>distância foco-pele</strong> e
+      <strong>radiação de fuga</strong> são medidos pelo Anexo I, mas o número — 6 cm, 20 cm e
+      0,25 mGy/h a 1 m — está no art. 2º, que descreve o que o equipamento precisa ter.</p>
+      <p class="prosa">No tamanho de campo as duas colunas do Anexo I se contradizem lidas ao
+      pé da letra: a tolerância é "menor que 6 cm" e o nível de restrição, "menor que 4 cm ou
+      maior que 8 cm" — de modo que um campo de 3 cm seria conforme e restritivo ao mesmo
+      tempo. O coletor aplica a faixa de 4 a 6 cm, que é a leitura que concilia as duas, e a
+      escolha está comentada no código, no próprio ensaio.</p>
+      <p class="prosa">A <strong>qualidade da imagem</strong> não tem número nenhum: o art. 5º
+      exige comparação com a imagem de referência do próprio serviço, produzida no teste de
+      aceitação. O coletor registra os pares de linhas e os degraus de contraste observados e
+      guarda a avaliação por inspeção — quem compara é o físico, com a referência na mão.</p>
+    </div>
+
+    <p class="rotulo">O relatório</p>
+    <div class="card pad">
+      <p class="prosa">O botão <strong>Ver o relatório gerado</strong> sai na estrutura de um
+      relatório de campo completo: capa com espaço para o logotipo, cadastro, objetivo,
+      introdução, descrição dos ensaios com a caixa <b>Tolerância IN&nbsp;-&nbsp;95</b> e o
+      nível de restrição de cada um, referências, equipamento utilizado com a rastreabilidade
+      dos instrumentos, definição dos parâmetros, identificação do conjunto emissor, inspeção
+      geral, resultados agrupados na numeração do documento, conclusão, assinaturas e a nota
+      de assinatura digital ICP-Brasil.</p>
+      <p class="prosa">É a mesma estrutura e a mesma formatação de impressão dos relatórios
+      dos coletores de radiografia (IN nº 90/2021) e de ultrassom (IN nº 96/2021) — muda o
+      conteúdo normativo, não o documento. A identidade do emissor está num único ponto do
+      código (<span class="mono">EMISSOR</span>), e o logotipo, num único SVG
+      (<span class="mono">MARCA</span>): preenchidos os dois, capa, cabeçalho de folha e
+      assinaturas passam a sair com a marca de quem emite.</p>
+      <p class="prosa">A descrição dos ensaios é gerada da mesma lista que monta o roteiro de
+      coleta — texto, tolerância e formulário saem da mesma definição, então não há como o
+      relatório descrever um critério e a coleta aplicar outro.</p>
+    </div>
+
+    <p class="rotulo">Como isso seria hospedado</p>
+    <div class="card pad">
+      <p class="prosa">O arquivo é estático: sobe em qualquer hospedagem, inclusive num
+      subdomínio próprio. O banco fica separado — guarda só as leituras e os resultados
+      resolvidos, que são dados pequenos.</p>
+      <p class="prosa">Funciona offline por desenho. No consultório não há rede confiável,
+      então a coleta grava no próprio aparelho e a fila sobe depois. A pastilha no alto da
+      tela inicial mostra quanto está guardado e leva para a fila de envio, onde dá para ver
+      o pacote que cada ensaio manda ao sistema de laudos.</p>
+    </div>
+
+    ${acaoFixa('<button class="bt principal" id="btVoltar2">Voltar ao início</button>')}`;
+
+  el('btVoltar2').addEventListener('click', ()=> ir('instituicoes', {hosp:null, equip:null}));
+}
+
+/* ==========================================================================
+   14. Render
+   ========================================================================== */
+
+const TELAS = {
+  instituicoes:telaInstituicoes, parque:telaParque, roteiro:telaRoteiro,
+  ensaio:telaEnsaio, vistoria:telaVistoria, laudo:telaLaudo,
+  sync:telaSync, sobre:telaSobre
+};
+
+function alternarTema(){
+  const r = document.documentElement;
+  const escuroAgora = r.getAttribute('data-theme') === 'dark' ||
+    (!r.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  r.setAttribute('data-theme', escuroAgora ? 'light' : 'dark');
+}
+
+function render(){
+  /* Estado órfão — o alvo pode ter sumido ao limpar medidas ou trocar de
+     instituição. Cai para o nível mais próximo que ainda existe. */
+  if (ESTADO.equip && !equipAtual()) ESTADO.equip = null;
+  if (ESTADO.hosp && !INSTITUICOES.some(h => h.id === ESTADO.hosp)) ESTADO.hosp = null;
+
+  let v = ESTADO.vista;
+  if (['roteiro','ensaio','vistoria','laudo'].includes(v) && !ESTADO.equip)
+    v = ESTADO.hosp ? 'parque' : 'instituicoes';
+  if (v === 'parque' && !ESTADO.hosp) v = 'instituicoes';
+  if (v === 'ensaio' && !POR_ID[ESTADO.ensaio]) v = 'roteiro';
+  ESTADO.vista = v;
+
+  (TELAS[v] || telaInstituicoes)();
+
+  const bv = el('abVoltar'); if (bv) bv.addEventListener('click', ()=> ir(bv.dataset.alvo));
+  const bt = el('abTema');   if (bt) bt.addEventListener('click', alternarTema);
+  const bs = el('abSobre');  if (bs) bs.addEventListener('click', ()=> ir('sobre'));
+  const br = el('abRede');   if (br) br.addEventListener('click', ()=> ir('sync'));
+}
+
+
+/* ==========================================================================
+   Ponte com o cadastro da casca.
+
+   Este coletor nasceu com a lista de instituições e o parque escritos no
+   próprio arquivo. Quando a casca tem cadastro, ela manda — as constantes
+   são substituídas no lugar (sem reatribuir, que são const) e o parâmetro
+   ?cliente= abre direto no parque daquele cliente, que é o ciclo fechado:
+   o ícone da modalidade no menu já sabe de quem é o equipamento.
+
+   Sem a casca — o arquivo aberto solto — nada disso roda e o coletor segue
+   com os dados de demonstração que sempre teve.
+   ========================================================================== */
+(function(){
+  if (!window.Cadastro) return;
+
+  const clientes = Cadastro.clientes();
+  if (clientes.length) {
+    INSTITUICOES.length = 0;
+    INSTITUICOES.push.apply(INSTITUICOES, clientes);
+  }
+
+  /* O cadastro guarda o que é de todas as modalidades no núcleo e o resto em
+     `extra`; aqui os dois voltam a ser um objeto só, no formato que este
+     coletor espera, com `cliente` renomeado para `hosp`. */
+  const equipamentos = Cadastro.equipamentos({modalidade: 95})
+    .map(function(e){
+      const o = Object.assign({}, e, e.extra || {}, {hosp: e.cliente});
+      delete o.extra; delete o.cliente; delete o.modalidade;
+      return o;
+    });
+  if (equipamentos.length) {
+    EQUIPAMENTOS.length = 0;
+    EQUIPAMENTOS.push.apply(EQUIPAMENTOS, equipamentos);
+  }
+
+
+  /* ----------------------------------------------------------------------
+     Instrumentos do serviço
+
+     O coletor nasceu com uma lista fixa de instrumentos. Quando o serviço
+     cadastrou os seus, são eles que valem — e a tabela de equipamento
+     utilizado do laudo passa a mostrar o parque de medição de quem assina.
+
+     O que não estiver cadastrado continua vindo da lista interna: o arquivo
+     aberto solto, sem a casca, não pode ficar sem instrumento nenhum.
+     -------------------------------------------------------------------- */
+
+  /* A tensão à qual o ensaio mede, que é o que escolhe o coeficiente no
+     certificado. Vem do parâmetro do próprio ensaio quando ele tem um; senão,
+     da média das estações, quando a leitura bruta é em kVp. Sem nada disso,
+     null — e o cadastro devolve o primeiro coeficiente. */
+  function kvDoEnsaio(ens){
+    const campoKv = (ens.campos || []).find(function(c){ return c.id === 'kvp'; });
+    if (campoKv && campoKv.valor != null) return Number(campoKv.valor);
+    if (ens.unidadeBruta === 'kVp'){
+      const noms = (ens.estacoes || [])
+        .map(function(e){ return e.nominal; })
+        .filter(function(v){ return v != null; });
+      if (noms.length) return noms.reduce(function(a,b){ return a+b; }, 0) / noms.length;
+    }
+    return null;
+  }
+
+  /* Os tipos que o coletor já conhecia, mais os que só existem no cadastro do
+     serviço — `outro`, tipicamente, usado por ensaio acrescentado. Sem isto o
+     laudo procura um instrumento que ninguém definiu. */
+  const tiposUsados = Object.keys(INSTRUMENTOS);
+  Cadastro.TIPOS_INSTRUMENTO.forEach(function(t){
+    if (tiposUsados.indexOf(t.id) < 0 && Cadastro.instrumentoDoTipo(t.id)) tiposUsados.push(t.id);
+  });
+
+  tiposUsados.forEach(function(tipo){
+    const cadastrado = Cadastro.instrumentoDoTipo(tipo);
+    if (!cadastrado) return;
+    INSTRUMENTOS[tipo] = {
+      nome: cadastrado.nome || Cadastro.tipoInstrumento(tipo).nome,
+      modelo: [cadastrado.fabricante, cadastrado.modelo].filter(Boolean).join(' ') || '—',
+      serie: cadastrado.serie || '—',
+      cert: (cadastrado.cert && cadastrado.cert.numero) || '—',
+      validade: (cadastrado.cert && cadastrado.cert.validade) || '—',
+      rastreab: (cadastrado.cert && cadastrado.cert.rastreab) || '—',
+      /* Guardado para o coeficiente e para o aviso de certificado vencido. */
+      registro: cadastrado
+    };
+  });
+
+  /* Cada ensaio passa a usar o coeficiente e a incerteza do certificado do
+     instrumento que o serviço cadastrou, na qualidade de feixe do ensaio. Sem
+     instrumento cadastrado, ficam os valores que o coletor já trazia. */
+  ENSAIOS.forEach(function(ens){
+    const meta = INSTRUMENTOS[ens.instr];
+    if (!meta || !meta.registro) return;
+    const c = Cadastro.coefDe(meta.registro, kvDoEnsaio(ens));
+    if (c.N != null) ens.N = c.N;
+    if (c.U != null) ens.Urel = c.U;
+  });
+
+  /* A casca diz de quem é a visita e, quando vem dos Relatórios, em qual
+     equipamento e em qual tela. O que não existir é ignorado: um link velho
+     não pode deixar o coletor num estado sem volta. */
+  const params = new URLSearchParams(location.search);
+  /* Marca que o coletor foi aberto pela casca: muda para onde o voltar leva. */
+  ESTADO.viaCasca = false;
+
+  const alvo = params.get('cliente');
+  if (alvo && INSTITUICOES.some(function(h){ return h.id === alvo; })) {
+    ESTADO.hosp = alvo;
+    ESTADO.vista = 'parque';
+    ESTADO.viaCasca = true;
+  }
+
+  const eq = params.get('equip');
+  if (eq && EQUIPAMENTOS.some(function(x){ return x.id === eq; })) {
+    ESTADO.equip = eq;
+    const v = params.get('vista');
+    ESTADO.vista = ['roteiro','ensaio','vistoria','laudo'].indexOf(v) >= 0 ? v : 'roteiro';
+    const ens = params.get('ensaio');
+    if (ens && POR_ID[ens]) { ESTADO.ensaio = ens; ESTADO.vista = 'ensaio'; }
+  }
+})();
+
+history.replaceState(instantaneo(), '', '#' + ESTADO.vista);
+
+render();
+
+</script>
+<script>
+/* Registra o service worker da casca: o coletor aberto direto pelo link
+   também passa a funcionar offline, sem depender de visitar o menu antes.
+
+   E oferece a versão nova quando ela chega. Sem isto o worker novo instala,
+   fica em espera e nunca entra — o aparelho continua servindo o pacote
+   anterior, e nem a demonstração nem o campo percebem. */
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+
+  const aviso = document.getElementById('aviso');
+  let pediuAtualizar = false;
+
+  addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      reg.addEventListener('updatefound', function(){
+        const novo = reg.installing;
+        if (!novo) return;
+        novo.addEventListener('statechange', function(){
+          /* Só avisa se já havia um controlador: na primeira visita o
+             "há uma versão nova" seria mentira. */
+          if (novo.state === 'installed' && navigator.serviceWorker.controller && aviso)
+            aviso.hidden = false;
+        });
+      });
+      /* Quando a página abre com um worker já em espera — o caso de quem
+         fechou o app antes de aceitar — o `updatefound` não dispara de novo. */
+      if (reg.waiting && navigator.serviceWorker.controller && aviso) aviso.hidden = false;
+    }).catch(function(){ /* sem SW o coletor ainda funciona, só não fica offline */ });
+
+    /* Recarrega só quando a troca foi pedida: na primeira visita o
+       clients.claim() do worker também dispara controllerchange. */
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if (!pediuAtualizar) return;
+      pediuAtualizar = false;
+      location.reload();
+    });
+  });
+
+  const bt = document.getElementById('btAtualizar');
+  if (bt) bt.addEventListener('click', function(){
+    if (aviso) aviso.hidden = true;
+    pediuAtualizar = true;
+    navigator.serviceWorker.getRegistration().then(function(reg){
+      if (reg && reg.waiting) reg.waiting.postMessage('SW_ATUALIZAR');
+      else location.reload();
+    });
+  });
+})();
+</script>
+</body>
+</html>

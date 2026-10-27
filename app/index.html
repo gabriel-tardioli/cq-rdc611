@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1B469A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CQ RDC 611">
+<meta name="application-name" content="CQ RDC 611">
+<meta name="description" content="Coletor de campo para os ensaios de controle de qualidade das INs nº 90 a 97/2021 — RDC nº 611/2022.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icones/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icones/icone-192.png">
+<title>Controle de Qualidade RDC 611</title>
+<style>
+/* ==========================================================================
+   Casca do aplicativo.
+
+   A tela inicial é um lançador: ícones soltos com o nome embaixo, como a área
+   de trabalho de um celular. Três destinos — Clientes, Iniciar CQ, Relatórios
+   — e nada mais, porque o que o físico faz em campo cabe nesses três verbos.
+
+   Os tokens abaixo são os mesmos dos coletores e da plataforma de laudos.
+   ========================================================================== */
+:root{
+  --bg:#F5F7F8; --surface:#FFFFFF; --surface-2:#FAFBFC; --hover:#EFF2F4;
+  --border:rgba(13,25,30,.09); --border-2:rgba(13,25,30,.16);
+  --text:#0F1618; --muted:#5F6E6A; --faint:#8B9793;
+  --accent:#2E63C8; --accent-soft:rgba(46,99,200,.10);
+  --ok:#2E9166; --warn:#B07714; --bad:#C2413F; --info:#2E63C8; --neutro:#647069;
+  --ok-soft:rgba(46,145,102,.10); --warn-soft:rgba(176,119,20,.10);
+  --bad-soft:rgba(194,65,63,.10); --neutro-soft:rgba(100,112,105,.10);
+  --sombra:0 1px 2px rgba(13,25,30,.06);
+  --sombra-app:0 2px 8px rgba(13,25,30,.10);
+  --sobre-accent:#FFFFFF;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,"Roboto Mono",
+         "Droid Sans Mono","Liberation Mono","Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0E10; --surface:#14181B; --surface-2:#1B2126; --hover:#232A30;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+    --text:#E9EEEC; --muted:#8C9793; --faint:#5E6A66;
+    --accent:#6C9CF5; --accent-soft:rgba(108,156,245,.16);
+    --ok:#43B581; --warn:#E3A33A; --bad:#E45B5B; --info:#6C9CF5; --neutro:#7C8A85;
+    --ok-soft:rgba(67,181,129,.15); --warn-soft:rgba(227,163,58,.15);
+    --bad-soft:rgba(228,91,91,.15); --neutro-soft:rgba(124,138,133,.15);
+    --sombra:0 1px 2px rgba(0,0,0,.3);
+    --sombra-app:0 2px 10px rgba(0,0,0,.42);
+    --sobre-accent:#08111F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0E10; --surface:#14181B; --surface-2:#1B2126; --hover:#232A30;
+  --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+  --text:#E9EEEC; --muted:#8C9793; --faint:#5E6A66;
+  --accent:#6C9CF5; --accent-soft:rgba(108,156,245,.16);
+  --ok:#43B581; --warn:#E3A33A; --bad:#E45B5B; --info:#6C9CF5; --neutro:#7C8A85;
+  --ok-soft:rgba(67,181,129,.15); --warn-soft:rgba(227,163,58,.15);
+  --bad-soft:rgba(228,91,91,.15); --neutro-soft:rgba(124,138,133,.15);
+  --sombra:0 1px 2px rgba(0,0,0,.3);
+  --sombra-app:0 2px 10px rgba(0,0,0,.42);
+  --sobre-accent:#08111F;
+}
+
+/* ==========================================================================
+   Sensação de aplicativo
+
+   A casca e os coletores são documentos separados. Sem isto, cada troca
+   pisca em branco e denuncia que aquilo é um site. A transição entre
+   documentos anima a passagem; onde o navegador não a suporta — iOS, hoje —
+   simplesmente não acontece nada, e fica como era.
+   ========================================================================== */
+@view-transition { navigation: auto; }
+
+*{box-sizing:border-box}
+html{
+  -webkit-text-size-adjust:100%;
+  /* O fundo tem de estar no html, não só no body: é ele que o navegador
+     pinta durante a navegação, e é daí que vinha o branco. */
+  background:var(--bg);
+  /* Sem puxar-para-recarregar e sem a borracha no fim da rolagem. Numa sala
+     de exame, esbarrar nisso no meio de uma leitura apaga o que foi digitado. */
+  overscroll-behavior:none;
+  /* Mata o atraso de 300 ms herdado do duplo-toque para ampliar. */
+  touch-action:manipulation;
+}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:15px/1.5 var(--sans); -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  /* Interface não se seleciona: segurar o dedo num rótulo não abre a lupa
+     nem o menu de copiar. O que é conteúdo volta a ser selecionável logo
+     abaixo — número de série e situação de laudo precisam poder ser copiados. */
+  -webkit-user-select:none; user-select:none;
+}
+input, textarea, select, .tab, .vazio, footer, .lc-txt .d, .cb-txt .sub{
+  -webkit-user-select:text; user-select:text;
+}
+svg{fill:none; stroke:currentColor; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round}
+
+/* --- barra do aplicativo ------------------------------------------------ */
+.topo{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:12px;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+}
+.glifo{
+  display:grid; place-items:center; width:34px; height:34px; flex:none;
+  border-radius:9px; background:var(--accent-soft); color:var(--accent);
+}
+.glifo svg{width:20px; height:20px}
+.ab-tit{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px}
+.ab-tit b{font-size:15px; font-weight:650; letter-spacing:-.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ab-tit span{font-size:12px; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ab-icone{
+  display:grid; place-items:center; width:34px; height:34px; flex:none;
+  border:1px solid var(--border); border-radius:9px;
+  background:var(--surface-2); color:var(--muted); cursor:pointer;
+  text-decoration:none;
+}
+.ab-icone svg{width:18px; height:18px}
+.ab-icone:active{background:var(--hover)}
+
+/* --- corpo -------------------------------------------------------------- */
+main{max-width:780px; margin:0 auto;
+  padding:16px 16px calc(40px + env(safe-area-inset-bottom))}
+.intro{margin:2px 0 16px}
+.intro h1{margin:0 0 6px; font-size:21px; font-weight:680; letter-spacing:-.02em}
+.intro p{margin:0; color:var(--muted); font-size:13.5px; max-width:58ch}
+
+h2.secao{
+  display:flex; align-items:baseline; gap:8px;
+  margin:22px 0 10px; font-size:11.5px; font-weight:640;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--faint);
+}
+h2.secao .cont{letter-spacing:0; text-transform:none; font:500 11.5px/1 var(--mono)}
+
+/* ==========================================================================
+   Lançador — ícones soltos, sem cartão em volta. O que delimita cada destino
+   é o próprio ícone; a moldura viria só atrapalhar a leitura do desenho.
+   ========================================================================== */
+.lancador{
+  display:grid; grid-template-columns:repeat(3, 1fr);
+  gap:22px 6px; margin:6px 0 4px;
+}
+.lancador.densa{grid-template-columns:repeat(3, 1fr); gap:20px 4px}
+@media (min-width:560px){
+  .lancador{grid-template-columns:repeat(3, 1fr)}
+  .lancador.densa{grid-template-columns:repeat(4, 1fr)}
+}
+
+.app{
+  display:flex; flex-direction:column; align-items:center; gap:9px;
+  padding:6px 2px; border:0; background:none; color:inherit;
+  font:inherit; text-align:center; text-decoration:none; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.app:active .app-ico{transform:scale(.92)}
+@media (hover:hover){ .app:hover .app-ico{transform:translateY(-2px)} }
+
+.app-ico{
+  position:relative; flex:none;
+  display:grid; place-items:center;
+  width:66px; height:66px; border-radius:19px;
+  background:var(--accent-soft); color:var(--accent);
+  box-shadow:var(--sombra-app);
+  transition:transform .14s ease;
+}
+.app-ico svg{width:37px; height:37px; stroke-width:1.5}
+.densa .app-ico{width:58px; height:58px; border-radius:17px}
+.densa .app-ico svg{width:33px; height:33px}
+
+.app.breve .app-ico{
+  background:var(--neutro-soft); color:var(--muted); box-shadow:none;
+}
+.app.breve{cursor:default}
+.app.breve:active .app-ico{transform:none}
+
+.app-nome{
+  font-size:12.5px; font-weight:620; line-height:1.28; letter-spacing:-.005em;
+  max-width:13ch;
+}
+.densa .app-nome{font-size:12px; max-width:12ch}
+.app.breve .app-nome{color:var(--muted)}
+.app-desc{
+  margin-top:-4px; font-size:10.5px; line-height:1.35; color:var(--faint);
+  max-width:15ch;
+}
+
+/* Contador de equipamentos, na borda do ícone — a mesma convenção de
+   notificação que qualquer lançador de celular usa. */
+.selo{
+  position:absolute; top:-5px; right:-5px;
+  min-width:21px; height:21px; padding:0 6px; border-radius:999px;
+  background:var(--accent); color:#fff;
+  font:700 11px/21px var(--sans); text-align:center;
+  box-shadow:0 0 0 2.5px var(--bg);
+}
+
+/* --- barra do cliente ativo --------------------------------------------- */
+.cliente-bar{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  margin:0 0 14px; padding:12px 13px;
+  border:1px solid var(--border); border-radius:12px;
+  background:var(--surface); box-shadow:var(--sombra);
+  color:inherit; font:inherit; cursor:pointer;
+}
+.cliente-bar:active{background:var(--hover)}
+.cliente-bar.vazia{border-style:dashed; background:var(--surface-2); box-shadow:none}
+.cb-ico{
+  display:grid; place-items:center; width:36px; height:36px; flex:none;
+  border-radius:9px; background:var(--accent-soft); color:var(--accent);
+}
+.cliente-bar.vazia .cb-ico{background:var(--warn-soft); color:var(--warn)}
+.cb-ico svg{width:19px; height:19px}
+.cb-txt{flex:1; min-width:0}
+.cb-txt .rot{font:600 10px/1.5 var(--sans); letter-spacing:.07em;
+  text-transform:uppercase; color:var(--faint)}
+.cb-txt .val{font-size:14.5px; font-weight:620; letter-spacing:-.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cb-txt .sub{font-size:12px; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cb-acao{flex:none; font:600 12px/1 var(--sans); color:var(--accent)}
+
+/* --- faixa de rede ------------------------------------------------------ */
+.faixa{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin:14px 0 0; padding:10px 13px;
+  border:1px solid var(--border); border-radius:11px; background:var(--surface-2);
+  font-size:12.5px; color:var(--muted);
+}
+.ponto{width:7px; height:7px; border-radius:50%; background:var(--ok); flex:none}
+.ponto.off{background:var(--neutro)}
+.faixa b{color:var(--text); font-weight:600}
+.bt-min{
+  margin-left:auto; padding:6px 12px; border:0; border-radius:8px;
+  background:var(--accent); color:var(--sobre-accent);
+  font:600 12px/1 var(--sans); cursor:pointer;
+}
+.bt-min[hidden]{display:none!important}
+
+/* --- linhas de lista ---------------------------------------------------- */
+.linha-cart{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  padding:13px; margin-bottom:8px;
+  border:1px solid var(--border); border-radius:12px;
+  background:var(--surface); box-shadow:var(--sombra);
+  color:inherit; font:inherit; cursor:pointer;
+}
+.linha-cart:active{background:var(--hover)}
+.linha-cart.nova{border-style:dashed; background:var(--surface-2); box-shadow:none}
+.lc-ico{
+  display:grid; place-items:center; width:36px; height:36px; flex:none;
+  border-radius:9px; background:var(--accent-soft); color:var(--accent);
+}
+.lc-ico svg{width:19px; height:19px}
+.linha-cart.nova .lc-ico{background:var(--neutro-soft); color:var(--muted)}
+.lc-txt{flex:1; min-width:0}
+.lc-txt .t{font-size:14.5px; font-weight:620; letter-spacing:-.01em;
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.lc-txt .d{font-size:12.5px; color:var(--muted); line-height:1.42;
+  overflow:hidden; text-overflow:ellipsis}
+.chip{padding:2.5px 8px; border-radius:999px;
+  font:600 10.5px/1.5 var(--sans); white-space:nowrap}
+.c-ok{background:var(--ok-soft); color:var(--ok)}
+.c-warn{background:var(--warn-soft); color:var(--warn)}
+.c-breve{background:var(--neutro-soft); color:var(--muted)}
+.c-ativo{background:var(--accent-soft); color:var(--accent)}
+.seta{flex:none; width:17px; height:17px; color:var(--faint); stroke-width:2}
+
+/* Linha com ação secundária ao lado: escolher no corpo, editar no botão. */
+.par{display:flex; align-items:stretch; gap:8px; margin-bottom:8px}
+.par .linha-cart{flex:1; margin-bottom:0}
+.bt-edit{
+  display:grid; place-items:center; width:46px; flex:none;
+  border:1px solid var(--border); border-radius:12px;
+  background:var(--surface-2); color:var(--muted); cursor:pointer;
+}
+.bt-edit svg{width:18px; height:18px}
+.bt-edit:active{background:var(--hover)}
+
+.vazio{
+  padding:26px 18px; text-align:center; border:1px dashed var(--border-2);
+  border-radius:12px; background:var(--surface-2); color:var(--muted);
+  font-size:13px; line-height:1.55;
+}
+
+/* --- tabela de relatórios ------------------------------------------------
+   A tabela é o único elemento que pode passar da largura da tela; por isso
+   rola sozinha, dentro da própria caixa, sem arrastar o corpo da página. */
+.rolagem{
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+  border:1px solid var(--border); border-radius:12px; background:var(--surface);
+}
+.tab{border-collapse:collapse; width:100%; font-size:13px}
+.tab th{
+  padding:10px 12px; text-align:left; white-space:nowrap;
+  font:600 10.5px/1.4 var(--sans); letter-spacing:.06em;
+  text-transform:uppercase; color:var(--faint);
+  border-bottom:1px solid var(--border); background:var(--surface-2);
+}
+.tab td{padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:middle}
+.tab tr:last-child td{border-bottom:0}
+.tab td b{display:block; font-weight:620; letter-spacing:-.01em}
+.tab td .sub{display:block; margin-top:1px; font-size:11.5px; color:var(--muted)}
+.tab .num{text-align:right; font-family:var(--mono); font-size:12.5px}
+.tab .nowrap{white-space:nowrap; color:var(--muted)}
+/* Num celular a pastilha de situação é a célula mais larga da linha; deixá-la
+   quebrar é o que mantém o botão de PDF dentro da tela. */
+.tab td{padding-left:10px; padding-right:10px}
+.tab .chip.quebra{white-space:normal; display:inline-block; text-align:center}
+.bt-pdf{
+  padding:6px 12px; border:1px solid var(--border-2); border-radius:8px;
+  background:var(--surface-2); color:var(--text);
+  font:650 11.5px/1 var(--sans); cursor:pointer; white-space:nowrap;
+}
+.bt-pdf:active{background:var(--hover)}
+.c-bad{background:var(--bad-soft); color:var(--bad)}
+
+/* --- formulário --------------------------------------------------------- */
+.campo{margin-bottom:12px}
+.campo label{display:block; margin-bottom:5px;
+  font:600 11px/1.4 var(--sans); letter-spacing:.05em;
+  text-transform:uppercase; color:var(--faint)}
+.campo input, .campo select{
+  width:100%; padding:11px 12px;
+  border:1px solid var(--border-2); border-radius:10px;
+  background:var(--surface); color:var(--text);
+  font:15px/1.3 var(--sans); -webkit-appearance:none; appearance:none;
+}
+.campo input:focus, .campo select:focus{
+  outline:none; border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.campo .dica{margin-top:5px; font-size:11.5px; color:var(--faint); line-height:1.45}
+.dupla{display:grid; gap:12px}
+@media (min-width:520px){ .dupla{grid-template-columns:1fr 1fr} }
+
+.acoes{display:flex; gap:9px; margin-top:20px; flex-wrap:wrap}
+.bt{
+  padding:12px 18px; border:0; border-radius:10px;
+  background:var(--accent); color:var(--sobre-accent);
+  font:650 14px/1 var(--sans); cursor:pointer; flex:1;
+}
+.bt:active{filter:brightness(.92)}
+.bt.sec{background:var(--surface); color:var(--text); border:1px solid var(--border-2)}
+.bt.perigo{background:var(--bad-soft); color:var(--bad); border:1px solid transparent; flex:none}
+
+.erro{
+  margin:0 0 14px; padding:11px 13px; border-radius:10px;
+  background:var(--bad-soft); color:var(--bad);
+  font-size:13px; font-weight:560;
+}
+.erro[hidden]{display:none!important}
+
+footer{
+  margin-top:26px; padding-top:16px; border-top:1px solid var(--border);
+  font-size:11.5px; color:var(--faint); line-height:1.6;
+}
+footer b{color:var(--muted); font-weight:600}
+
+/* --- aviso de nova versão ----------------------------------------------- */
+
+/* --- linha da tabela de coeficientes ------------------------------------ */
+.coef-linha{display:flex; gap:6px; align-items:center; margin-bottom:6px}
+.coef-linha input{
+  flex:1 1 0; min-width:0; padding:9px 10px; border-radius:9px;
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  font:inherit; font-size:13px;
+}
+.coef-linha input:focus{outline:none; border-color:var(--accent)}
+.coef-linha .coef-q{flex:1.4 1 0}
+.coef-linha .coef-x{flex:0 0 auto; width:34px; padding:0; font-size:13px}
+
+.aviso{
+  position:fixed; left:16px; right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom)); z-index:40;
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:11px;
+  background:var(--text); color:var(--bg);
+  box-shadow:0 6px 24px rgba(0,0,0,.28); font-size:12.5px;
+}
+.aviso[hidden]{display:none!important}
+.aviso button{
+  margin-left:auto; flex:none; padding:6px 12px; border:0; border-radius:7px;
+  background:var(--accent); color:#fff; font:600 12px/1 var(--sans); cursor:pointer;
+}
+@media (min-width:640px){ .aviso{left:auto; right:24px; max-width:380px} }
+</style>
+</head>
+<body>
+
+<header class="topo" id="topo"></header>
+<main id="app"></main>
+
+<div class="aviso" id="aviso" hidden>
+  <span>Há uma versão mais recente do app.</span>
+  <button id="btAtualizar">Atualizar</button>
+</div>
+
+<script src="base/semente.js"></script>
+<script src="base/arquivos.js"></script>
+<script src="base/cadastro.js"></script>
+<script>
+"use strict";
+
+/* ==========================================================================
+   1. Utilidades e ícones da casca
+   ========================================================================== */
+const el  = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const ICONE = {
+  /* Paquímetro medindo: o acervo de instrumentos. */
+  medidor: '<path d="M6.2 3.2h11.6a1.6 1.6 0 0 1 1.6 1.6v14.4a1.6 1.6 0 0 1-1.6 1.6H6.2a1.6 1.6 0 0 1-1.6-1.6V4.8a1.6 1.6 0 0 1 1.6-1.6z"/>'
+         + '<path d="M4.6 8.4h4M4.6 12h2.6M4.6 15.6h4"/>'
+         + '<rect x="11" y="9.6" width="6.2" height="4.8" rx="1"/>',
+  /* Cilindro com alvos dentro: o fantoma, que é imageado e não mede. */
+  fantoma: '<ellipse cx="12" cy="5.4" rx="7.2" ry="2.6"/>'
+         + '<path d="M4.8 5.4v13.2c0 1.44 3.22 2.6 7.2 2.6s7.2-1.16 7.2-2.6V5.4"/>'
+         + '<circle cx="9.2" cy="11.4" r="1.15"/><circle cx="14.8" cy="11.4" r="1.15"/>'
+         + '<circle cx="12" cy="16.2" r="1.15"/>',
+  /* Chaves cruzadas: a configuração do serviço. */
+  ajustes: '<circle cx="12" cy="12" r="3.1"/>'
+         + '<path d="M12 2.6v2.6M12 18.8v2.6M4.4 12H1.8M22.2 12h-2.6"/>'
+         + '<path d="M6.6 6.6L4.8 4.8M19.2 19.2l-1.8-1.8M17.4 6.6l1.8-1.8M4.8 19.2l1.8-1.8"/>',
+  marca:   '<path d="M3 17l5-6 4 4 4-7 5 9"/><path d="M3 21h18"/>',
+  voltar:  '<path d="M15 18l-6-6 6-6"/>',
+  tema:    '<path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10l1.4 1.4M3 12h2m14 0h2M5.6 18.4L7 17m10-10l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
+  seta:    '<path d="M9 6l6 6-6 6"/>',
+  predio:  '<path d="M4 21V6.5a1 1 0 0 1 .7-.95l6-1.9a1 1 0 0 1 1.3.95V21"/><path d="M12 10.5l6.3 1.6a1 1 0 0 1 .7.96V21"/><path d="M2.5 21h19"/><path d="M7.3 9.3h1.6M7.3 12.7h1.6M7.3 16.1h1.6M15 15h1.4"/>',
+  aparelho:'<rect x="2.7" y="5" width="18.6" height="12" rx="2.3"/><path d="M6.2 20h11.6"/><path d="M12 17v3"/><path d="M6.3 11.4h2.4l1.5-3 2.3 5.6 1.5-2.6h3.7"/>',
+  mais:    '<path d="M12 5v14M5 12h14"/>',
+  lapis:   '<path d="M16.4 3.9a2.1 2.1 0 0 1 3 3L8.6 17.7l-4 1 1-4z"/>',
+  /* Prancheta com visto: iniciar o CQ é percorrer um rol de ensaios. */
+  prancheta:'<path d="M8.6 4.2H6.8A1.8 1.8 0 0 0 5 6v13.2A1.8 1.8 0 0 0 6.8 21h10.4a1.8 1.8 0 0 0 1.8-1.8V6a1.8 1.8 0 0 0-1.8-1.8h-1.8"/>'
+           + '<rect x="8.6" y="2.6" width="6.8" height="3.4" rx="1.1"/>'
+           + '<path d="M8.9 13.1l2.3 2.3 4.1-4.6"/>',
+  /* Folha com canto dobrado e linhas de texto: o laudo. */
+  laudo:   '<path d="M13.4 2.8H7.2A1.8 1.8 0 0 0 5.4 4.6v14.8A1.8 1.8 0 0 0 7.2 21.2h9.6a1.8 1.8 0 0 0 1.8-1.8V7.8z"/>'
+           + '<path d="M13.4 2.8v5h5.2"/>'
+           + '<path d="M8.6 12.6h6.8M8.6 16h4.6"/>',
+  /* Régua na diagonal: medir depois, sobre a imagem. */
+  regua:   '<path d="M14.6 2.6l6.8 6.8a1.4 1.4 0 0 1 0 2L11 21.4a1.4 1.4 0 0 1-2 0L2.6 15a1.4 1.4 0 0 1 0-2L12.6 2.6a1.4 1.4 0 0 1 2 0z"/>'
+           + '<path d="M7.4 10.2l2 2M10.4 7.2l2 2M13.4 4.2l2 2M4.4 13.2l2 2"/>',
+  /* Grade de linhas e colunas: a tabela de relatórios. */
+  tabela:  '<rect x="3" y="4.2" width="18" height="15.6" rx="2.2"/>'
+           + '<path d="M3 9.2h18"/><path d="M3 14.5h18"/><path d="M9.6 9.2v10.6"/>'
+};
+const svg = (miolo, cls) =>
+  '<svg viewBox="0 0 24 24" aria-hidden="true"' + (cls ? ' class="' + cls + '"' : '') + '>' + miolo + '</svg>';
+
+const plural = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+
+/* ==========================================================================
+   2. Estado de navegação
+   ========================================================================== */
+/* `apos` guarda para onde voltar depois de escolher um cliente. Sem ele a
+   lista sempre caía no início, e quem entrou por Iniciar CQ era jogado de
+   volta ao menu em vez de seguir para as modalidades daquele cliente. */
+const ESTADO = { vista:'inicio', editando:null, mod:null, apos:null, classe:null, erro:'' };
+
+/* --- histórico -----------------------------------------------------------
+   Sem isto, o botão voltar do Android fecha o aplicativo em vez de subir um
+   nível — é o tell mais óbvio de que aquilo é uma página, não um app. Cada
+   `ir` empilha um estado; o voltar do sistema desempilha.
+
+   Só a tela inicial não tem para onde subir: ali o voltar sai mesmo, que é
+   o comportamento certo. */
+const instantaneo = () => ({
+  vista: ESTADO.vista, editando: ESTADO.editando, mod: ESTADO.mod
+});
+
+/* Telas que se reconstroem só pelo nome. As de formulário dependem de
+   `editando` e por isso não entram: um endereço solto apontando para elas
+   abriria um cadastro sem dono. */
+const VISTAS_DIRETAS = ['inicio', 'cq', 'relatorios', 'posteriores', 'tabela',
+                        'clientes', 'lista-clientes', 'equipamentos'];
+
+function ir(vista, extra){
+  Object.assign(ESTADO, { vista, erro:'' }, extra || {});
+  scrollTo(0, 0);
+  history.pushState(instantaneo(), '', '#' + vista);
+  render();
+}
+
+addEventListener('popstate', ev => {
+  const s = ev.state;
+  Object.assign(ESTADO,
+    (s && s.vista) ? s : {vista:'inicio', editando:null, mod:null},
+    {erro:''});
+  scrollTo(0, 0);
+  render();
+});
+
+function topo(o){
+  const esquerda = o.voltar
+    ? `<button class="ab-icone" id="abVoltar" aria-label="Voltar">${svg(ICONE.voltar)}</button>`
+    : `<span class="glifo" aria-hidden="true">${svg(ICONE.marca)}</span>`;
+  el('topo').innerHTML = esquerda
+    + `<div class="ab-tit"><b>${esc(o.titulo)}</b><span>${esc(o.sub)}</span></div>`
+    + `<button class="ab-icone" id="abTema" aria-label="Alternar tema">${svg(ICONE.tema)}</button>`;
+  const bv = el('abVoltar');
+  if (bv) bv.addEventListener('click', () => ir(o.voltar));
+  el('abTema').addEventListener('click', alternarTema);
+}
+
+const RODAPE = `<footer>
+  <b>Resolução RDC nº 611, de 9 de março de 2022</b> — requisitos sanitários para
+  serviços de radiologia diagnóstica ou intervencionista. Ensaios conforme as
+  Instruções Normativas nº 90 a 97, de 27 de maio de 2021.<br>
+  Demonstração técnica. Confira os dados do cliente e do equipamento antes de
+  emitir qualquer laudo.
+</footer>`;
+
+function barraCliente(){
+  const id = Cadastro.clienteAtivo();
+  const c = id ? Cadastro.cliente(id) : null;
+  if (!c) {
+    return `<button class="cliente-bar vazia" id="bCliente">
+      <span class="cb-ico">${svg(ICONE.predio)}</span>
+      <span class="cb-txt">
+        <span class="rot">Cliente</span>
+        <span class="val">Nenhum cliente escolhido</span>
+        <span class="sub">Escolha um para liberar a coleta</span>
+      </span>
+      <span class="cb-acao">Escolher</span>
+    </button>`;
+  }
+  return `<button class="cliente-bar" id="bCliente">
+    <span class="cb-ico">${svg(ICONE.predio)}</span>
+    <span class="cb-txt">
+      <span class="rot">Cliente</span>
+      <span class="val">${esc(c.nome)}</span>
+      <span class="sub">${esc([c.cidade, c.cnpj].filter(Boolean).join(' · '))}</span>
+    </span>
+    <span class="cb-acao">Trocar</span>
+  </button>`;
+}
+
+/* Um ícone do lançador. `selo` é o contador na borda; `desc` a linha miúda
+   embaixo do nome. */
+function appIcone(o){
+  const corpo = `<span class="app-ico">${svg(o.icone)}${
+      o.selo ? `<span class="selo">${o.selo}</span>` : ''}</span>
+    <span class="app-nome">${esc(o.nome)}</span>
+    ${o.desc ? `<span class="app-desc">${esc(o.desc)}</span>` : ''}`;
+  if (o.inativo) return `<div class="app breve">${corpo}</div>`;
+  return o.href
+    ? `<a class="app" href="${esc(o.href)}">${corpo}</a>`
+    : `<button class="app" data-ir="${esc(o.ir)}">${corpo}</button>`;
+}
+
+/* ==========================================================================
+   3. Tela inicial — o lançador
+   ========================================================================== */
+function telaInicio(){
+  const clienteId = Cadastro.clienteAtivo();
+  const nCli = Cadastro.clientes().length;
+  const nEq  = Cadastro.equipamentos(clienteId ? {cliente:clienteId} : {}).length;
+  const nRel = relatorios().length;
+
+  topo({titulo:'Controle de Qualidade RDC 611', sub:'Coletor de campo · INs nº 90 a 97/2021'});
+
+  el('app').innerHTML = `
+    ${barraCliente()}
+
+    <div class="lancador">
+      ${appIcone({icone:ICONE.predio, nome:'Clientes', ir:'clientes',
+                  desc:'Cadastro e equipamentos', selo:nCli || ''})}
+      ${appIcone({icone:ICONE.prancheta, nome:'Iniciar CQ', ir:'cq',
+                  desc:'Escolher a modalidade', selo:nEq || ''})}
+      ${appIcone({icone:ICONE.ajustes, nome:'Ferramentas', ir:'ferramentas',
+                  desc:'Medidores e fantomas'})}
+      ${appIcone({icone:ICONE.laudo, nome:'Relatórios', ir:'relatorios',
+                  desc:'Coletas e laudos', selo:nRel || ''})}
+    </div>
+
+    <div class="faixa">
+      <span class="ponto" id="ponto" aria-hidden="true"></span>
+      <span id="estadoRede">Verificando…</span>
+      <button class="bt-min" id="btInstalar" hidden>Instalar app</button>
+    </div>
+
+    ${RODAPE}`;
+
+  el('bCliente').addEventListener('click', () => ir('lista-clientes'));
+  ligarLancador();
+  pintarRede();
+}
+
+function ligarLancador(){
+  document.querySelectorAll('[data-ir]').forEach(b =>
+    b.addEventListener('click', () => {
+      const alvo = b.dataset.ir;
+      /* Coletar sem cliente não faz sentido: o laudo não teria cabeçalho. */
+      if (alvo === 'cq' && !Cadastro.clienteAtivo())
+        return ir('lista-clientes', {apos:'cq'});
+      /* "Cadastrar cliente" é um destino do lançador, mas não uma tela nova:
+         é o mesmo formulário, aberto em branco. */
+      if (alvo === 'cliente-novo') return ir('cliente', {editando:null});
+      ir(alvo);
+    }));
+}
+
+/* ==========================================================================
+   4. Tela: iniciar CQ — as oito modalidades, também como lançador
+   ========================================================================== */
+function telaCQ(){
+  const clienteId = Cadastro.clienteAtivo();
+  const cli = clienteId ? Cadastro.cliente(clienteId) : null;
+
+  topo({titulo:'Iniciar CQ', sub:cli ? cli.nome : 'Sem cliente ativo', voltar:'inicio'});
+
+  /* Dois grupos, e a legenda de cada ícone fica só com o número da IN. Com
+     "em preparação" embaixo de cada um, a legenda quebra em duas linhas em
+     uns e não em outros, e a grade sai torta. O título da seção diz uma vez
+     o que a legenda repetiria seis. */
+  const icone = m => {
+    const pronta = !!m.arquivo;
+    const n = Cadastro.contagem(m.in, clienteId);
+    return appIcone({
+      icone: m.icone,
+      nome: m.curto,
+      desc: 'IN ' + m.in,
+      selo: n ? n : '',
+      inativo: !pronta,
+      href: pronta && clienteId
+        ? m.arquivo + '?cliente=' + encodeURIComponent(clienteId)
+        : null,
+      ir: pronta && !clienteId ? 'clientes' : null
+    });
+  };
+  const prontas = Cadastro.MODALIDADES.filter(m =>  m.arquivo);
+  const breves  = Cadastro.MODALIDADES.filter(m => !m.arquivo);
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Modalidades</h1>
+      <p>${cli
+        ? 'O coletor abre direto no parque de <b>' + esc(cli.nome) + '</b>. O número no ícone é quantos equipamentos daquela modalidade estão cadastrados.'
+        : 'Escolha um cliente para liberar a coleta.'}</p>
+    </div>
+
+    ${barraCliente()}
+
+    <h2 class="secao">Disponíveis</h2>
+    <div class="lancador densa">${prontas.map(icone).join('')}</div>
+
+    <h2 class="secao">Em preparação</h2>
+    <div class="lancador densa">${breves.map(icone).join('')}</div>
+
+    ${RODAPE}`;
+
+  el('bCliente').addEventListener('click', () => ir('lista-clientes', {apos:'cq'}));
+  ligarLancador();
+}
+
+/* ==========================================================================
+   5. As coletas gravadas
+
+   Cada coletor grava sob a sua própria chave, e a modalidade diz qual é —
+   `chave`, em base/cadastro.js. A casca percorre todas: nenhuma modalidade
+   precisa ser lembrada aqui, e a que ganhar coletor amanhã aparece sozinha.
+
+   O que se lê é o `resumo` que o coletor gravou. A casca nunca recalcula
+   conformidade: o Anexo I é conhecido de um lado só.
+   ========================================================================== */
+
+function relatorios(){
+  const visitas = [];
+
+  Cadastro.MODALIDADES.forEach(m => {
+    if (!m.chave) return;
+    let bruto;
+    try { bruto = JSON.parse(localStorage.getItem(m.chave) || '{}'); }
+    catch (e) { return; }
+    const guardadas = (bruto && bruto.visitas) ? bruto.visitas : {};
+    /* O coletor de raios X guarda `equip` dentro da visita; o de ultrassom
+       usa a própria chave do objeto. Aceitar os dois evita uma migração só
+       para uniformizar um identificador que já está correto nos dois. */
+    Object.keys(guardadas).forEach(id => {
+      const v = guardadas[id];
+      if (v && typeof v === 'object') visitas.push(Object.assign({equip:id}, v, {modalidadeChave:m.in}));
+    });
+  });
+
+  return visitas.map(v => {
+    const eq  = Cadastro.equipamento(v.equip);
+    const cli = eq ? Cadastro.cliente(eq.cliente) : null;
+    const res = v.resultados || {};
+    const modalidade = eq ? Number(eq.modalidade) : v.modalidadeChave;
+
+    /* Quais medidas posteriores deste equipamento ainda faltam. */
+    const pendentes = Cadastro.posteriores(modalidade)
+      .filter(p => !(res[p.id] && res[p.id].concluido));
+
+    /* A conformidade vem do resumo que o coletor grava a cada escrita. A
+       casca não recalcula nada: o Anexo I é conhecido de um lado só, e duas
+       contas do mesmo laudo acabariam divergindo. */
+    const resumo = v.resumo || {};
+
+    return {
+      equipId: v.equip, equip: eq, cliente: cli,
+      data: v.data || v.visita || '', iniciada: v.iniciada || resumo.atualizado || 0,
+      resultados: res,
+      concluidos: resumo.concluidos != null
+        ? resumo.concluidos
+        : Object.values(res).filter(r => r && r.concluido).length,
+      /* Sem `iniciada` — que só o coletor de raios X grava — a ordenação
+         cairia toda no mesmo valor. O resumo traz o instante da última
+         escrita, que serve igual. */
+      total: resumo.total != null ? resumo.total : Object.keys(res).length,
+      contagem: resumo.contagem || null,
+      situacao: resumo.situacao || 'pend',
+      pendentesPosteriores: pendentes,
+      modalidade: modalidade
+    };
+  }).sort((a, b) => b.iniciada - a.iniciada);
+}
+
+const nomeEquip = r => r.equip
+  ? ([r.equip.marca, r.equip.modelo].filter(Boolean).join(' ') || r.equipId)
+  : r.equipId;
+
+const abrirColetor = (modalidade, clienteId, equipId, vista, ensaio) => {
+  const m = Cadastro.modalidade(modalidade);
+  if (!m || !m.arquivo) return;
+  location.href = m.arquivo
+    + '?cliente=' + encodeURIComponent(clienteId || '')
+    + '&equip=' + encodeURIComponent(equipId)
+    + '&vista=' + encodeURIComponent(vista)
+    + (ensaio ? '&ensaio=' + encodeURIComponent(ensaio) : '');
+};
+
+/* --- 5a. Relatórios: o lançador do ramo ---------------------------------- */
+function telaRelatorios(){
+  const lista = relatorios();
+  const aFazer = lista.reduce((n, r) => n + r.pendentesPosteriores.length, 0);
+
+  topo({titulo:'Relatórios', sub:plural(lista.length, 'coleta', 'coletas'), voltar:'inicio'});
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Relatórios</h1>
+      <p>A coleta de campo fecha uma parte do laudo. A outra são as leituras
+         feitas depois, sobre as imagens adquiridas.</p>
+    </div>
+
+    <div class="lancador">
+      ${appIcone({icone:ICONE.regua, nome:'Medidas posteriores', ir:'posteriores',
+                  desc:'Qualidade de imagem', selo:aFazer || ''})}
+      ${appIcone({icone:ICONE.tabela, nome:'Relatórios', ir:'tabela',
+                  desc:'Situação e PDF', selo:lista.length || ''})}
+    </div>
+
+    ${RODAPE}`;
+
+  ligarLancador();
+}
+
+/* --- 5b. Medidas posteriores --------------------------------------------- */
+function telaPosteriores(){
+  const lista = relatorios().filter(r => r.pendentesPosteriores.length);
+
+  topo({titulo:'Medidas posteriores', sub:'Qualidade de imagem', voltar:'relatorios'});
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Medidas posteriores</h1>
+      <p>Ensaios cuja leitura sai da imagem adquirida, e não do aparelho —
+         entram no relatório depois da visita. Toque em um para abrir o
+         formulário do ensaio já no equipamento certo.</p>
+    </div>
+
+    ${lista.length ? lista.map(r => `
+      <h2 class="secao">${esc(nomeEquip(r))}
+        <span class="cont">${esc(r.cliente ? r.cliente.nome : '—')} · ${esc(r.data)}</span></h2>
+      ${r.pendentesPosteriores.map(p => `
+        <button class="linha-cart" data-post="${esc(p.id)}"
+                data-equip="${esc(r.equipId)}" data-mod="${esc(String(r.modalidade))}"
+                data-cli="${esc(r.cliente ? r.cliente.id : '')}">
+          <span class="lc-ico">${svg(ICONE.regua)}</span>
+          <span class="lc-txt">
+            <span class="t">${esc(p.nome)}</span>
+            <span class="d">aguardando leitura da imagem</span>
+          </span>
+          ${svg(ICONE.seta, 'seta')}
+        </button>`).join('')}`).join('')
+    : `<div class="vazio">Nenhuma medida posterior pendente.<br>
+        Elas aparecem aqui depois que uma visita é iniciada em
+        <b>Iniciar CQ</b>.</div>`}
+
+    <div class="faixa" style="margin-top:16px">
+      <span>Quais ensaios são de leitura posterior está definido em
+        <b>base/cadastro.js</b>. A norma não faz essa separação — a lista
+        atual é a rotina usual, e se mede num lugar só.</span>
+    </div>
+
+    ${RODAPE}`;
+
+  document.querySelectorAll('[data-post]').forEach(b =>
+    b.addEventListener('click', () => abrirColetor(
+      Number(b.dataset.mod), b.dataset.cli, b.dataset.equip, 'ensaio', b.dataset.post)));
+}
+
+/* --- 5c. Tabela de relatórios -------------------------------------------- */
+function telaTabela(){
+  const lista = relatorios();
+
+  topo({titulo:'Relatórios', sub:plural(lista.length, 'coleta', 'coletas'), voltar:'relatorios'});
+
+  const classe = { conf:'c-ok', lim:'c-warn', elb:'c-ativo', nconf:'c-bad',
+                   restr:'c-bad', pend:'c-breve', na:'c-breve' };
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Relatórios</h1>
+      <p>Uma linha por visita. A situação é a pior encontrada entre os ensaios
+         já concluídos — e continua se movendo enquanto a coleta não fecha.</p>
+    </div>
+
+    ${lista.length ? `<div class="rolagem"><table class="tab">
+      <thead><tr>
+        <th>Equipamento</th><th class="num">Nº</th><th>Situação</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${lista.map(r => `<tr>
+          <td>
+            <b>${esc(nomeEquip(r))}</b>
+            <span class="sub">${esc(r.cliente ? r.cliente.nome : 'cliente removido')}
+              · ${esc(r.data)}</span>
+          </td>
+          <td class="num">${r.concluidos}</td>
+          <td><span class="chip quebra ${classe[r.situacao] || 'c-breve'}">${
+            esc(Cadastro.ROTULOS[r.situacao] || '—')}</span></td>
+          <td><button class="bt-pdf" data-pdf="${esc(r.equipId)}"
+                data-mod="${esc(String(r.modalidade))}"
+                data-cli="${esc(r.cliente ? r.cliente.id : '')}">PDF</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`
+    : `<div class="vazio">Nenhuma coleta ainda.<br>
+        Abra <b>Iniciar CQ</b>, escolha a modalidade e o primeiro ensaio
+        registrado já aparece aqui.</div>`}
+
+    <div class="faixa" style="margin-top:16px">
+      <span>O PDF sai pela impressão do navegador, a partir do laudo montado
+        no coletor, e a planilha da visita sai de lá também. Cada modalidade
+        grava sob a sua própria chave no aparelho; esta lista percorre todas.</span>
+    </div>
+
+    ${RODAPE}`;
+
+  document.querySelectorAll('[data-pdf]').forEach(b =>
+    b.addEventListener('click', () => abrirColetor(
+      Number(b.dataset.mod), b.dataset.cli, b.dataset.pdf, 'laudo')));
+}
+
+/* ==========================================================================
+   6. Tela: clientes
+   ========================================================================== */
+function telaClientes(){
+  const lista = Cadastro.clientes();
+  const ativo = Cadastro.clienteAtivo();
+  const nEq = Cadastro.equipamentos(ativo ? {cliente:ativo} : {}).length;
+
+  topo({titulo:'Clientes', sub:plural(lista.length, 'cadastro', 'cadastros'), voltar:'inicio'});
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Clientes</h1>
+      <p>O que se cadastra aqui vai direto para o cabeçalho do laudo — razão
+         social, CNPJ, endereço, responsável técnico e alvará sanitário.</p>
+    </div>
+
+    ${barraCliente()}
+
+    <div class="lancador">
+      ${appIcone({icone:ICONE.mais, nome:'Cadastrar cliente', ir:'cliente-novo',
+                  desc:'Novo cadastro'})}
+      ${appIcone({icone:ICONE.predio, nome:'Lista de clientes', ir:'lista-clientes',
+                  desc:'Escolher e editar', selo:lista.length || ''})}
+      ${appIcone({icone:ICONE.aparelho, nome:'Equipamentos', ir:'equipamentos',
+                  desc:ativo ? 'Parque do cliente' : 'Acervo completo', selo:nEq || ''})}
+    </div>
+
+    ${RODAPE}`;
+
+  el('bCliente').addEventListener('click', () => ir('lista-clientes'));
+  ligarLancador();
+}
+
+function telaListaClientes(){
+  const lista = Cadastro.clientes();
+  const ativo = Cadastro.clienteAtivo();
+
+  topo({titulo:'Lista de clientes', sub:plural(lista.length, 'cadastro', 'cadastros'),
+        voltar: ESTADO.apos || 'clientes'});
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Lista de clientes</h1>
+      <p>Toque em um cliente para torná-lo o ativo — é dele que saem os
+         cabeçalhos e o parque de equipamentos. O lápis abre o cadastro.</p>
+    </div>
+
+    ${lista.length ? lista.map(c => `
+      <div class="par">
+        <button class="linha-cart" data-sel="${esc(c.id)}">
+          <span class="lc-ico">${svg(ICONE.predio)}</span>
+          <span class="lc-txt">
+            <span class="t">${esc(c.nome)}
+              ${c.id === ativo ? '<span class="chip c-ativo">ativo</span>' : ''}</span>
+            <span class="d">${esc([c.cidade, c.cnpj].filter(Boolean).join(' · '))}<br>
+              ${plural(Cadastro.equipamentos({cliente:c.id}).length, 'equipamento', 'equipamentos')}</span>
+          </span>
+        </button>
+        <button class="bt-edit" data-cli="${esc(c.id)}"
+                aria-label="Editar ${esc(c.nome)}">${svg(ICONE.lapis)}</button>
+      </div>`).join('')
+    : `<div class="vazio">Nenhum cliente cadastrado ainda.<br>
+        O primeiro cadastro já libera a coleta.</div>`}
+
+    <button class="linha-cart nova" id="bNovo" style="margin-top:10px">
+      <span class="lc-ico">${svg(ICONE.mais)}</span>
+      <span class="lc-txt">
+        <span class="t">Cadastrar cliente</span>
+        <span class="d">Nome, CNPJ, endereço e responsável técnico</span>
+      </span>
+    </button>
+
+    ${RODAPE}`;
+
+  /* Tocar o cliente escolhe e segue — para onde quem abriu a lista pediu, e
+     para o início quando ninguém pediu nada. Escolher um cliente dentro de
+     Iniciar CQ tem de levar às modalidades daquele cliente, e não ao menu.
+     Editar é a exceção, e por isso é um botão à parte. */
+  document.querySelectorAll('[data-sel]').forEach(b =>
+    b.addEventListener('click', () => {
+      Cadastro.definirClienteAtivo(b.dataset.sel);
+      ir(ESTADO.apos || 'inicio', {apos:null});
+    }));
+  document.querySelectorAll('[data-cli]').forEach(b =>
+    b.addEventListener('click', () => ir('cliente', {editando:b.dataset.cli})));
+  el('bNovo').addEventListener('click', () => ir('cliente', {editando:null}));
+}
+
+const CAMPOS_CLIENTE = [
+  {id:'nome',     rot:'Razão social ou nome',  req:true,  dica:'Como deve aparecer no cabeçalho do laudo'},
+  {id:'cnpj',     rot:'CNPJ',                  larg:'meia'},
+  {id:'telefone', rot:'Telefone',              larg:'meia'},
+  {id:'endereco', rot:'Endereço'},
+  {id:'cidade',   rot:'Cidade / UF',           larg:'meia'},
+  {id:'cep',      rot:'CEP',                   larg:'meia'},
+  {id:'rt',       rot:'Responsável técnico',   dica:'Nome e registro profissional — vai no bloco de assinaturas'},
+  {id:'alvara',   rot:'Alvará sanitário'}
+];
+
+function campoHtml(c, valor){
+  return `<div class="campo">
+    <label for="f_${c.id}">${esc(c.rot)}</label>
+    ${c.opcoes
+      ? `<select id="f_${c.id}">${c.opcoes.map(o =>
+          `<option value="${esc(o.v)}"${String(valor) === String(o.v) ? ' selected' : ''}>${esc(o.r)}</option>`).join('')}</select>`
+      : `<input id="f_${c.id}" type="text" value="${esc(valor || '')}"
+           autocomplete="off" ${c.req ? 'required' : ''}>`}
+    ${c.dica ? `<div class="dica">${esc(c.dica)}</div>` : ''}
+  </div>`;
+}
+
+/* Agrupa os campos marcados como meia largura em pares. */
+function formHtml(campos, dados){
+  let html = '', fila = [];
+  const descarregar = () => {
+    if (!fila.length) return;
+    html += `<div class="dupla">${fila.join('')}</div>`;
+    fila = [];
+  };
+  for (const c of campos) {
+    if (c.larg === 'meia') fila.push(campoHtml(c, dados[c.id]));
+    else { descarregar(); html += campoHtml(c, dados[c.id]); }
+    if (fila.length === 2) descarregar();
+  }
+  descarregar();
+  return html;
+}
+
+const colher = campos => {
+  const o = {};
+  for (const c of campos) o[c.id] = el('f_' + c.id).value.trim();
+  return o;
+};
+
+function telaCliente(){
+  const editando = ESTADO.editando;
+  const c = editando ? (Cadastro.cliente(editando) || {}) : {};
+  const novo = !editando;
+
+  /* Volta para onde se veio: do lançador quando é cadastro novo, da lista
+     quando é edição. */
+  const volta = novo ? 'clientes' : 'lista-clientes';
+
+  topo({titulo:novo ? 'Novo cliente' : 'Editar cliente',
+        sub:novo ? 'Cadastro' : (c.nome || ''), voltar:volta});
+
+  el('app').innerHTML = `
+    <div class="erro" id="erro" ${ESTADO.erro ? '' : 'hidden'}>${esc(ESTADO.erro)}</div>
+    ${formHtml(CAMPOS_CLIENTE, c)}
+    <div class="acoes">
+      <button class="bt" id="bSalvar">${novo ? 'Cadastrar e ativar' : 'Salvar'}</button>
+      <button class="bt sec" id="bCancelar">Cancelar</button>
+    </div>
+    ${novo ? '' : `<div class="acoes">
+      <button class="bt perigo" id="bExcluir">Excluir cliente e seus equipamentos</button>
+    </div>`}
+    ${RODAPE}`;
+
+  el('bCancelar').addEventListener('click', () => ir(volta));
+
+  el('bSalvar').addEventListener('click', () => {
+    const dados = colher(CAMPOS_CLIENTE);
+    if (!dados.nome) {
+      ESTADO.erro = 'A razão social é obrigatória — é ela que encabeça o laudo.';
+      return render();
+    }
+    const salvo = Cadastro.salvarCliente(Object.assign({}, c, dados, {id: editando || undefined}));
+    Cadastro.definirClienteAtivo(salvo.id);
+    ir(volta);
+  });
+
+  const bx = el('bExcluir');
+  if (bx) bx.addEventListener('click', () => {
+    const n = Cadastro.equipamentos({cliente:editando}).length;
+    if (!confirm('Excluir "' + (c.nome || '') + '"'
+      + (n ? ' e ' + plural(n, 'equipamento', 'equipamentos') : '') + '?\n\nNão há como desfazer.')) return;
+    Cadastro.removerCliente(editando);
+    ir(volta);
+  });
+}
+
+/* ==========================================================================
+   7. Tela: equipamentos
+   ========================================================================== */
+function telaEquipamentos(){
+  const clienteId = Cadastro.clienteAtivo();
+  const cli = clienteId ? Cadastro.cliente(clienteId) : null;
+  const lista = Cadastro.equipamentos(clienteId ? {cliente:clienteId} : {});
+
+  topo({titulo:'Equipamentos', sub:cli ? cli.nome : 'Acervo completo', voltar:'clientes'});
+
+  /* Agrupado por modalidade: é assim que o parque é lido em campo. */
+  const porMod = Cadastro.MODALIDADES
+    .map(m => ({m, itens: lista.filter(e => Number(e.modalidade) === m.in)}))
+    .filter(g => g.itens.length);
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Equipamentos</h1>
+      <p>${cli
+        ? 'Parque de <b>' + esc(cli.nome) + '</b>. Cada equipamento aparece na modalidade correspondente assim que é cadastrado.'
+        : 'Nenhum cliente ativo — mostrando o acervo inteiro.'}</p>
+    </div>
+
+    ${porMod.length ? porMod.map(g => `
+      <h2 class="secao">${esc(g.m.curto)}
+        <span class="cont">IN ${g.m.in} · ${g.itens.length}</span></h2>
+      ${g.itens.map(e => `
+        <button class="linha-cart" data-eq="${esc(e.id)}">
+          <span class="lc-ico">${svg(g.m.icone)}</span>
+          <span class="lc-txt">
+            <span class="t">${esc([e.marca, e.modelo].filter(Boolean).join(' ')) || esc(e.id)}
+              <span class="chip c-breve">${esc(e.id)}</span></span>
+            <span class="d">${esc([e.ns, e.sala, e.setor].filter(Boolean).join(' · '))}</span>
+          </span>
+          ${svg(ICONE.seta, 'seta')}
+        </button>`).join('')}`).join('')
+    : `<div class="vazio">${cli
+        ? 'Nenhum equipamento neste cliente ainda.'
+        : 'Nenhum equipamento no acervo.'}<br>
+        Cadastre o primeiro e ele já aparece no ícone da modalidade.</div>`}
+
+    <button class="linha-cart nova" id="bNovo" style="margin-top:10px">
+      <span class="lc-ico">${svg(ICONE.mais)}</span>
+      <span class="lc-txt">
+        <span class="t">Cadastrar equipamento</span>
+        <span class="d">Modalidade, marca, modelo, número de série e sala</span>
+      </span>
+    </button>
+
+    ${RODAPE}`;
+
+  document.querySelectorAll('[data-eq]').forEach(b =>
+    b.addEventListener('click', () => ir('equipamento', {editando:b.dataset.eq, mod:null})));
+  el('bNovo').addEventListener('click', () => ir('equipamento', {editando:null, mod:null}));
+}
+
+/* Campos do núcleo — todos os equipamentos têm. */
+const CAMPOS_EQUIP = [
+  {id:'modalidade',    rot:'Modalidade', req:true,
+   opcoes: Cadastro.MODALIDADES.map(m => ({v:m.in, r:'IN ' + m.in + ' · ' + m.curto}))},
+  {id:'marca',         rot:'Marca',            larg:'meia'},
+  {id:'modelo',        rot:'Modelo',           larg:'meia'},
+  {id:'ns',            rot:'Número de série',  larg:'meia'},
+  {id:'patrimonio',    rot:'Patrimônio',       larg:'meia'},
+  {id:'unidade',       rot:'Unidade',          larg:'meia'},
+  {id:'setor',         rot:'Setor',            larg:'meia'},
+  {id:'sala',          rot:'Sala'},
+  {id:'relatorio',     rot:'Nº do relatório',  larg:'meia'},
+  {id:'periodicidade', rot:'Periodicidade',    larg:'meia',
+   opcoes:[{v:'Anual',r:'Anual'},{v:'Semestral',r:'Semestral'},
+           {v:'Trimestral',r:'Trimestral'},{v:'Mensal',r:'Mensal'}]}
+];
+
+/* Campos que só uma modalidade entende. Guardados em `extra`, e é o coletor
+   daquela modalidade que os lê. */
+const CAMPOS_EXTRA = {
+  90: [
+    {id:'tipo',       rot:'Tipo',       larg:'meia',
+     opcoes:[{v:'Fixo',r:'Fixo'},{v:'Móvel',r:'Móvel'},{v:'Arco em C',r:'Arco em C'}]},
+    {id:'tecnologia', rot:'Tecnologia', larg:'meia',
+     opcoes:[{v:'DR',r:'DR — digital direta'},{v:'CR',r:'CR — fósforo'},{v:'Filme',r:'Filme-écran'}]},
+    {id:'gerador',    rot:'Gerador',
+     opcoes:[{v:'alta',r:'Alta frequência'},{v:'tri',r:'Trifásico'},{v:'mono',r:'Monofásico'}]}
+  ],
+  95: [
+    {id:'tipo',       rot:'Instalação', larg:'meia',
+     opcoes:[{v:'Parede',r:'Parede'},{v:'Móvel',r:'Móvel'},{v:'Coluna',r:'Coluna'}]},
+    {id:'tecnologia', rot:'Receptor',   larg:'meia',
+     opcoes:[{v:'Digital · sensor',r:'Digital — sensor de estado sólido'},
+             {v:'Digital · placa',r:'Digital — placa de fósforo'},
+             {v:'Filme',r:'Filme'}]},
+    {id:'localizador', rot:'Localizador', dica:'Tipo e comprimento — a distância foco-pele sai daqui'}
+  ]
+};
+
+/* Especificações do conjunto emissor, iguais nas seis modalidades que têm
+   tubo de raios X. A lista e o rol de modalidades moram no cadastro, não
+   aqui: o laudo e os coletores leem os mesmos campos. */
+const CAMPOS_TUBO = Cadastro.CAMPOS_TUBO;
+
+function telaEquipamento(){
+  const editando = ESTADO.editando;
+  /* O formulário se redesenha ao trocar a modalidade e ao acusar erro. O que
+     já foi digitado fica no rascunho, que só vale enquanto o mesmo formulário
+     está aberto: toda entrada nesta tela chega com `mod` nulo. */
+  const r = ESTADO.rascunhoEq;
+  const e = (ESTADO.mod != null && r && r.de === editando) ? r.dados
+          : editando ? (Cadastro.equipamento(editando) || {}) : {};
+  ESTADO.rascunhoEq = {de:editando, dados:e};
+  const novo = !editando;
+  const clienteId = Cadastro.clienteAtivo();
+
+  /* Modalidade em edição: o que o usuário acabou de escolher no select, ou a
+     do registro, ou a primeira da lista. */
+  const modAtual = Number(ESTADO.mod || e.modalidade || Cadastro.MODALIDADES[0].in);
+  const extras = CAMPOS_EXTRA[modAtual] || [];
+  const tubo   = Cadastro.temTubo(modAtual) ? CAMPOS_TUBO : [];
+  /* A quem o equipamento pertence. Vem do registro ou, em cadastro novo, do
+     cliente ativo — mas fica à vista e pode ser trocado aqui mesmo. */
+  const clientes = Cadastro.clientes();
+  const campoCliente = {id:'cliente', rot:'Cliente', req:true,
+    opcoes: clientes.map(c => ({v:c.id, r:c.nome || c.id}))};
+  const campos = clientes.length ? [campoCliente].concat(CAMPOS_EQUIP) : CAMPOS_EQUIP;
+  const dados = Object.assign({}, e, e.extra || {}, {modalidade:modAtual,
+    cliente: e.cliente || clienteId || (clientes[0] && clientes[0].id)});
+  const cli = dados.cliente ? Cadastro.cliente(dados.cliente) : null;
+
+  topo({titulo:novo ? 'Novo equipamento' : 'Editar equipamento',
+        sub:cli ? cli.nome : 'Sem cliente ativo', voltar:'equipamentos'});
+
+  el('app').innerHTML = `
+    <div class="erro" id="erro" ${ESTADO.erro ? '' : 'hidden'}>${esc(ESTADO.erro)}</div>
+    ${clientes.length ? '' : `<div class="vazio" style="margin-bottom:16px">
+       Cadastre um cliente antes do equipamento: ele precisa pertencer a
+       alguém para entrar no laudo.</div>`}
+    ${formHtml(campos, dados)}
+    ${tubo.length ? `<h2 class="secao">Conjunto emissor
+      <span class="cont">exigido no laudo</span></h2>
+      ${formHtml(tubo, dados)}` : ''}
+    ${extras.length ? `<h2 class="secao">Específico da modalidade</h2>
+      ${formHtml(extras, dados)}` : ''}
+    ${modAtual === 96 ? `<div class="dica" style="margin-top:-4px">
+      Os transdutores deste equipamento são cadastrados dentro do coletor de
+      ultrassom, onde cada um tem slot, frequência e técnica própria.</div>` : ''}
+    <div class="acoes">
+      <button class="bt" id="bSalvar" ${cli ? '' : 'disabled'}>${novo ? 'Cadastrar' : 'Salvar'}</button>
+      <button class="bt sec" id="bCancelar">Cancelar</button>
+    </div>
+    ${novo ? '' : `<div class="acoes">
+      <button class="bt perigo" id="bExcluir">Excluir equipamento</button>
+    </div>`}
+    ${RODAPE}`;
+
+  /* Trocar a modalidade redesenha o formulário, porque os campos específicos
+     mudam junto. O que já foi digitado no núcleo é preservado. */
+  el('f_modalidade').addEventListener('change', ev => {
+    const parcial = colher(campos.filter(c => c.id !== 'modalidade'));
+    /* O conjunto emissor é o mesmo bloco em toda modalidade com tubo: trocar
+       de IN 90 para IN 95 não pode apagar o que já foi digitado nele. */
+    const emissor = tubo.length ? colher(tubo) : {};
+    ESTADO.mod = Number(ev.target.value);
+    Object.assign(e, parcial);
+    e.extra = Object.assign({}, e.extra || {}, emissor);
+    render();
+  });
+
+  el('bCancelar').addEventListener('click', () => ir('equipamentos', {mod:null}));
+
+  const bs = el('bSalvar');
+  if (bs) bs.addEventListener('click', () => {
+    const nucleo = colher(campos);
+    const extra = Object.assign({}, e.extra || {},
+                                tubo.length ? colher(tubo) : {},
+                                extras.length ? colher(extras) : {});
+    if (!nucleo.marca && !nucleo.modelo) {
+      ESTADO.erro = 'Informe ao menos a marca ou o modelo — é como o equipamento é reconhecido na sala.';
+      Object.assign(e, nucleo, {extra});
+      ESTADO.mod = modAtual;
+      return render();
+    }
+    Cadastro.salvarEquipamento(Object.assign({}, e, nucleo, {
+      id: editando || undefined,
+      extra: extra
+    }));
+    /* A lista de volta é a do cliente ativo; se o equipamento foi para outro
+       cliente, é esse que passa a estar ativo — senão ele some da vista. */
+    if (clienteId && nucleo.cliente !== clienteId) Cadastro.definirClienteAtivo(nucleo.cliente);
+    ir('equipamentos', {mod:null});
+  });
+
+  const bx = el('bExcluir');
+  if (bx) bx.addEventListener('click', () => {
+    if (!confirm('Excluir ' + (e.id || 'este equipamento') + '?\n\nNão há como desfazer.')) return;
+    Cadastro.removerEquipamento(editando);
+    ir('equipamentos', {mod:null});
+  });
+}
+
+/* ==========================================================================
+   8. Tema, rede, instalação e service worker
+   ========================================================================== */
+const TEMA_CHAVE = 'cq-rdc611-tema';
+try {
+  const salvo = localStorage.getItem(TEMA_CHAVE);
+  if (salvo) document.documentElement.dataset.theme = salvo;
+} catch (e) { /* modo privado: segue o sistema, e está bom */ }
+
+function alternarTema(){
+  const r = document.documentElement;
+  const escuroAgora = r.dataset.theme
+    ? r.dataset.theme === 'dark'
+    : matchMedia('(prefers-color-scheme: dark)').matches;
+  const novo = escuroAgora ? 'light' : 'dark';
+  r.dataset.theme = novo;
+  try { localStorage.setItem(TEMA_CHAVE, novo); } catch (e) {}
+}
+
+function pintarRede(){
+  const p = el('ponto'); if (!p) return;
+  const on = navigator.onLine;
+  p.className = 'ponto' + (on ? '' : ' off');
+  el('estadoRede').innerHTML = on
+    ? 'Conectado · <b>o app funciona offline depois de instalado</b>'
+    : '<b>Sem rede</b> · tudo continua funcionando';
+  const b = el('btInstalar');
+  if (b && convite) b.hidden = false;
+}
+addEventListener('online', pintarRede);
+addEventListener('offline', pintarRede);
+
+let convite = null;
+addEventListener('beforeinstallprompt', ev => {
+  ev.preventDefault();
+  convite = ev;
+  const b = el('btInstalar'); if (b) b.hidden = false;
+});
+addEventListener('appinstalled', () => {
+  convite = null;
+  const b = el('btInstalar'); if (b) b.hidden = true;
+});
+
+/* Delegado: o botão é recriado a cada render, o ouvinte não. */
+document.addEventListener('click', async ev => {
+  if (!ev.target.closest || !ev.target.closest('#btInstalar')) return;
+  if (!convite) return;
+  convite.prompt();
+  await convite.userChoice;
+  convite = null;
+  const b = el('btInstalar'); if (b) b.hidden = true;
+});
+
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const novo = reg.installing;
+        if (!novo) return;
+        novo.addEventListener('statechange', () => {
+          /* Só avisa se já havia um controlador: na primeira visita o
+             "há uma versão nova" seria mentira. */
+          if (novo.state === 'installed' && navigator.serviceWorker.controller)
+            el('aviso').hidden = false;
+        });
+      });
+      /* Quando a página abre com um worker já em espera — o caso de quem
+         fechou o app antes de aceitar — o `updatefound` não dispara de novo,
+         e sem isto o aviso nunca mais apareceria. */
+      if (reg.waiting && navigator.serviceWorker.controller) el('aviso').hidden = false;
+    }).catch(() => { /* sem SW o app ainda funciona, só não fica offline */ });
+
+    /* Recarrega só quando a troca foi pedida pelo usuário: na primeira visita
+       o clients.claim() do worker também dispara controllerchange. */
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!pediuAtualizar) return;
+      pediuAtualizar = false;
+      location.reload();
+    });
+  });
+}
+
+let pediuAtualizar = false;
+el('btAtualizar').addEventListener('click', () => {
+  el('aviso').hidden = true;
+  pediuAtualizar = true;
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (reg && reg.waiting) reg.waiting.postMessage('SW_ATUALIZAR');
+    else location.reload();
+  });
+});
+
+
+/* ==========================================================================
+   8. Ferramentas do serviço
+
+   O aplicativo é vendido a vários serviços de física médica, e cada um tem o
+   seu parque de medição. Medidores e fantomas ficam em destinos separados —
+   é assim que quem usa os procura.
+   ========================================================================== */
+
+function telaFerramentas(){
+  const medidores = Cadastro.instrumentos({classe:'medidor'}).length;
+  const fantomas  = Cadastro.instrumentos({classe:'fantoma'}).length;
+  const vencidos = Cadastro.instrumentos().filter(i => {
+    const d = Cadastro.diasParaVencer(i.cert && i.cert.validade);
+    return d != null && d < 0;
+  }).length;
+
+  topo({titulo:'Ferramentas', sub:'Medidores e fantomas do serviço', voltar:'inicio'});
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>Ferramentas</h1>
+      <p>Com o que você mede e o que você imageia. O ensaio pede um tipo de
+         ferramenta; o coletor usa a que estiver cadastrada aqui, com o
+         coeficiente do certificado dela.</p>
+    </div>
+
+    <div class="lancador">
+      ${appIcone({icone:ICONE.medidor, nome:'Medidores', ir:'medidores',
+                  desc:'Certificados e coeficientes', selo:medidores || ''})}
+      ${appIcone({icone:ICONE.fantoma, nome:'Fantomas', ir:'fantomas',
+                  desc:'Objetos de teste e simuladores', selo:fantomas || ''})}
+    </div>
+
+    ${vencidos ? `<div class="vazio" style="margin-top:14px; color:var(--bad)">
+      ${vencidos} certificado(s) de calibração vencido(s). Medida feita com
+      instrumento fora da validade não sustenta laudo.</div>` : ''}
+
+    ${RODAPE}`;
+
+  ligarLancador();
+}
+
+/* --- 8a. A lista, que serve aos dois destinos --------------------------- */
+function telaInstrumentos(){
+  /* Medidores e fantomas são a mesma tela com um recorte diferente: o que
+     muda é o vocabulário, não o cadastro. */
+  const classe = ESTADO.vista === 'fantomas' ? 'fantoma' : 'medidor';
+  const info = Cadastro.CLASSES_INSTRUMENTO.find(c => c.id === classe);
+  const lista = Cadastro.instrumentos({classe});
+
+  topo({titulo:info.nome, sub:plural(lista.length, 'cadastrado', 'cadastrados'),
+        voltar:'ferramentas'});
+
+  /* Agrupado por tipo, que é como o ensaio pede a ferramenta. */
+  const porTipo = Cadastro.tiposDaClasse(classe)
+    .map(t => ({t, itens: lista.filter(i => i.tipo === t.id)}))
+    .filter(g => g.itens.length);
+
+  const selo = i => {
+    const d = Cadastro.diasParaVencer(i.cert && i.cert.validade);
+    if (d == null) return '<span class="chip c-breve">sem validade</span>';
+    if (d < 0)     return '<span class="chip c-bad">certificado vencido</span>';
+    if (d < 60)    return `<span class="chip c-warn">vence em ${d} dia(s)</span>`;
+    return '<span class="chip c-ok">calibrado</span>';
+  };
+
+  el('app').innerHTML = `
+    <div class="intro">
+      <h1>${esc(info.nome)}</h1>
+      <p>${esc(info.desc)}. Cada ensaio pede um <b>tipo</b> de ferramenta, e o
+         coletor usa a que estiver cadastrada aqui — trocar a câmara por outra
+         não mexe em ensaio nenhum.</p>
+    </div>
+
+    ${porTipo.length ? porTipo.map(g => `
+      <h2 class="secao">${esc(g.t.nome)}
+        <span class="cont">${g.itens.length}</span></h2>
+      ${g.itens.map(i => `
+        <button class="linha-cart" data-ins="${esc(i.id)}">
+          <span class="lc-ico">${svg(ICONE.medidor)}</span>
+          <span class="lc-txt">
+            <span class="t">${esc([i.fabricante, i.modelo].filter(Boolean).join(' ')) || esc(i.nome) || esc(i.id)}
+              ${i.preferido ? '<span class="chip c-ativo">preferido</span>' : ''}</span>
+            <span class="d">${esc([i.serie && ('N/S ' + i.serie),
+                                   i.cert && i.cert.numero,
+                                   /* Coeficiente é assunto de medidor: um fantoma não
+                                      corrige leitura nenhuma, e dizer que ele está "sem
+                                      coeficiente" sugere uma falta que não existe. */
+                                   classe === 'fantoma' ? null
+                                     : ((i.coeficientes || []).length
+                                        ? (i.coeficientes.length + ' coeficiente(s)') : 'sem coeficiente')
+                                  ].filter(Boolean).join(' · '))}</span>
+          </span>
+          ${selo(i)}
+        </button>`).join('')}`).join('')
+    : `<div class="vazio">Nenhum ${classe === 'fantoma' ? 'fantoma' : 'medidor'} cadastrado.<br>
+        Sem eles o laudo sai sem a tabela de equipamento utilizado, que é onde
+        mora a rastreabilidade das medidas.</div>`}
+
+    <button class="linha-cart nova" id="bNovo" style="margin-top:10px">
+      <span class="lc-ico">${svg(ICONE.mais)}</span>
+      <span class="lc-txt">
+        <span class="t">Cadastrar ${classe === 'fantoma' ? 'fantoma' : 'medidor'}</span>
+        <span class="d">${classe === 'fantoma'
+          ? 'Fabricante, modelo, série e certificado do fabricante'
+          : 'Certificado de calibração e coeficientes de correção'}</span>
+      </span>
+    </button>
+
+    ${RODAPE}`;
+
+  document.querySelectorAll('[data-ins]').forEach(b =>
+    b.addEventListener('click', () => ir('instrumento', {editando:b.dataset.ins, classe})));
+  el('bNovo').addEventListener('click', () => ir('instrumento', {editando:null, classe}));
+}
+
+const CAMPOS_INSTRUMENTO = [
+  {id:'tipo', rot:'Tipo', req:true,
+   opcoes: [],   /* preenchido no desenho, do cadastro */
+   dica:'É o que liga o instrumento ao ensaio que o pede'},
+  {id:'nome',       rot:'Descrição',   dica:'Como aparece no laudo, se marca e modelo não bastarem'},
+  {id:'fabricante', rot:'Fabricante',  larg:'meia'},
+  {id:'modelo',     rot:'Modelo',      larg:'meia'},
+  {id:'serie',      rot:'Número de série', larg:'meia'},
+  {id:'patrimonio', rot:'Patrimônio',  larg:'meia'}
+];
+
+const CAMPOS_CERT = [
+  {id:'numero',       rot:'Nº do certificado', larg:'meia'},
+  {id:'laboratorio',  rot:'Laboratório',       larg:'meia'},
+  {id:'data',         rot:'Data da calibração', larg:'meia', dica:'dd/mm/aaaa'},
+  {id:'validade',     rot:'Válido até',        larg:'meia', dica:'dd/mm/aaaa'},
+  {id:'rastreab',     rot:'Rastreabilidade',   dica:'Rede Brasileira de Calibração, fabricante, outro'}
+];
+
+function telaInstrumento(){
+  const editando = ESTADO.editando;
+  const i = editando ? (Cadastro.instrumento(editando) || {}) : {};
+  const novo = !editando;
+  const cert = i.cert || {};
+  const coefs = (i.coeficientes && i.coeficientes.length)
+    ? i.coeficientes : [{qualidade:'', kv:'', N:'', U:''}];
+
+  /* A classe vem de onde se entrou; editando um já cadastrado, do próprio
+     registro — senão editar um fantoma pela lista de medidores trocaria o
+     tipo dele sem que ninguém pedisse. */
+  const classe = (editando && i.tipo) ? Cadastro.tipoInstrumento(i.tipo).classe
+                                      : (ESTADO.classe || 'medidor');
+  const volta = classe === 'fantoma' ? 'fantomas' : 'medidores';
+  const ehFantoma = classe === 'fantoma';
+
+  const campos = CAMPOS_INSTRUMENTO.map(c => c.id !== 'tipo' ? c
+    : Object.assign({}, c, {opcoes: Cadastro.tiposDaClasse(classe).map(t => ({v:t.id, r:t.nome}))}));
+
+  topo({titulo:novo ? (ehFantoma ? 'Novo fantoma' : 'Novo medidor')
+                    : (i.modelo || i.id),
+        sub:novo ? Cadastro.CLASSES_INSTRUMENTO.find(c => c.id === classe).desc
+                 : 'Editar cadastro', voltar:volta});
+
+  el('app').innerHTML = `
+    <div class="erro" id="erro" ${ESTADO.erro ? '' : 'hidden'}>${esc(ESTADO.erro)}</div>
+
+    ${formHtml(campos, i)}
+
+    <div class="campo">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+        <input type="checkbox" id="f_preferido" ${i.preferido ? 'checked' : ''}
+               style="width:auto; margin:0">
+        Usar este por padrão nos ensaios deste tipo
+      </label>
+      <div class="dica">Quando há mais de um instrumento do mesmo tipo, o coletor
+        usa o marcado aqui.</div>
+    </div>
+
+    <h2 class="secao">Certificado de calibração
+      <span class="cont">rastreabilidade</span></h2>
+    ${formHtml(CAMPOS_CERT, cert)}
+
+    <div class="campo">
+      <label for="f_arquivo">Arquivo do certificado</label>
+      <input id="f_arquivo" type="file" accept="application/pdf,image/*">
+      <div class="dica" id="dicaArquivo">${cert.arquivoId
+        ? 'Há um arquivo guardado neste aparelho. Escolher outro substitui.'
+        : 'PDF ou foto, guardado no próprio aparelho. Opcional.'}</div>
+      ${cert.arquivoId ? `<div class="acoes" style="margin-top:8px">
+        <button class="bt sec" id="bVerCert" type="button">Abrir certificado</button>
+        <button class="bt sec" id="bTirarCert" type="button">Remover arquivo</button>
+      </div>` : ''}
+    </div>
+
+    ${ehFantoma ? '' : `<h2 class="secao">Coeficientes de correção
+      <span class="cont">por qualidade de feixe</span></h2>`}
+    ${ehFantoma ? '' : `<div class="dica" style="margin:-4px 2px 10px">
+      O certificado de uma câmara traz um N para cada qualidade de feixe. Com
+      mais de uma linha, o coletor interpola pela tensão do ensaio e não
+      extrapola fora da faixa calibrada. Com uma linha só, ela vale sempre.
+      Deixe em branco se o medidor não tem coeficiente.
+    </div>`}
+    ${ehFantoma ? '' : `<div id="coefs">${coefs.map((c, k) => linhaCoef(c, k)).join('')}</div>
+    <div class="acoes" style="margin-top:4px">
+      <button class="bt sec" id="bMaisCoef" type="button">Acrescentar qualidade</button>
+    </div>`}
+
+    <div class="acoes">
+      <button class="bt" id="bSalvar">${novo ? 'Cadastrar' : 'Salvar'}</button>
+      <button class="bt sec" id="bCancelar">Cancelar</button>
+    </div>
+    ${novo ? '' : `<div class="acoes">
+      <button class="bt perigo" id="bExcluir">Excluir instrumento</button>
+    </div>`}
+
+    ${RODAPE}`;
+
+  el('bCancelar').addEventListener('click', () => ir(volta));
+  const bmc = el('bMaisCoef');
+  if (bmc) bmc.addEventListener('click', () => {
+    const d = document.createElement('div');
+    d.innerHTML = linhaCoef({qualidade:'', kv:'', N:'', U:''}, document.querySelectorAll('.coef-linha').length);
+    el('coefs').appendChild(d.firstElementChild);
+  });
+  ligarRemoverCoef();
+
+  const bv = el('bVerCert');
+  if (bv) bv.addEventListener('click', () => Arquivos.abrir(cert.arquivoId));
+  const bt = el('bTirarCert');
+  if (bt) bt.addEventListener('click', async () => {
+    await Arquivos.apagar(cert.arquivoId);
+    const salvo = Cadastro.instrumento(editando) || {};
+    salvo.cert = Object.assign({}, salvo.cert, {arquivoId:null, arquivoNome:null});
+    Cadastro.salvarInstrumento(salvo);
+    render();
+  });
+
+  el('bSalvar').addEventListener('click', async () => {
+    const nucleo = colher(campos);
+    if (!nucleo.fabricante && !nucleo.modelo && !nucleo.nome) {
+      ESTADO.erro = 'Informe ao menos o fabricante, o modelo ou uma descrição — é como o instrumento aparece no laudo.';
+      return render();
+    }
+    const c = colher(CAMPOS_CERT);
+    c.arquivoId = cert.arquivoId || null;
+    c.arquivoNome = cert.arquivoNome || null;
+
+    /* O arquivo entra antes de gravar o cadastro: se o aparelho recusar o
+       anexo, o resto do cadastro ainda é salvo, só sem ele. */
+    const entrada = el('f_arquivo');
+    if (entrada && entrada.files && entrada.files[0]) {
+      const f = entrada.files[0];
+      const id = await Arquivos.guardar(f, {instrumento: editando || ''});
+      if (id) {
+        if (cert.arquivoId) await Arquivos.apagar(cert.arquivoId);
+        c.arquivoId = id;
+        c.arquivoNome = f.name;
+      } else {
+        ESTADO.erro = 'O cadastro foi salvo, mas este aparelho não permitiu guardar o arquivo do certificado.';
+      }
+    }
+
+    Cadastro.salvarInstrumento(Object.assign({}, i, nucleo, {
+      id: editando || undefined,
+      preferido: el('f_preferido').checked,
+      cert: c,
+      coeficientes: ehFantoma ? [] : colherCoefs()
+    }));
+    if (ESTADO.erro) return render();
+    ir(volta);
+  });
+
+  const bx = el('bExcluir');
+  if (bx) bx.addEventListener('click', async () => {
+    if (!confirm('Excluir ' + (i.modelo || i.id) + '?\n\nNão há como desfazer.')) return;
+    if (cert.arquivoId) await Arquivos.apagar(cert.arquivoId);
+    Cadastro.removerInstrumento(editando);
+    ir(volta);
+  });
+}
+
+/* Uma linha da tabela de coeficientes. Índice no atributo para que apagar uma
+   linha do meio não desalinhe as demais. */
+function linhaCoef(c, k){
+  return `<div class="coef-linha" data-k="${k}">
+    <input class="coef-q"  placeholder="Qualidade" value="${esc(c.qualidade || '')}" autocomplete="off">
+    <input class="coef-kv" placeholder="kV"        value="${esc(c.kv == null ? '' : c.kv)}" inputmode="decimal">
+    <input class="coef-n"  placeholder="N"         value="${esc(c.N  == null ? '' : c.N)}"  inputmode="decimal">
+    <input class="coef-u"  placeholder="U %"       value="${esc(c.U  == null ? '' : c.U)}"  inputmode="decimal">
+    <button class="bt-edit coef-x" type="button" aria-label="Remover linha">✕</button>
+  </div>`;
+}
+
+function ligarRemoverCoef(){
+  document.querySelectorAll('.coef-x').forEach(b =>
+    b.addEventListener('click', () => {
+      const linhas = document.querySelectorAll('.coef-linha');
+      if (linhas.length <= 1) {
+        /* A última não some: sem nenhuma linha o usuário fica sem onde
+           digitar, e "apagar tudo" se faz esvaziando os campos. */
+        b.closest('.coef-linha').querySelectorAll('input').forEach(i => i.value = '');
+        return;
+      }
+      b.closest('.coef-linha').remove();
+    }));
+}
+
+/* Só as linhas com N preenchido viram coeficiente: linha em branco é linha
+   que o usuário acrescentou e não usou. */
+function colherCoefs(){
+  const fora = [];
+  document.querySelectorAll('.coef-linha').forEach(l => {
+    const num = s => { const v = parseFloat(String(s).replace(',', '.')); return isNaN(v) ? null : v; };
+    const N = num(l.querySelector('.coef-n').value);
+    if (N == null) return;
+    fora.push({
+      qualidade: l.querySelector('.coef-q').value.trim(),
+      kv: num(l.querySelector('.coef-kv').value),
+      N: N,
+      U: num(l.querySelector('.coef-u').value)
+    });
+  });
+  return fora;
+}
+
+
+/* ==========================================================================
+   9. Roteador
+   ========================================================================== */
+const TELAS = {
+  inicio: telaInicio,
+  cq: telaCQ,
+  relatorios: telaRelatorios, posteriores: telaPosteriores, tabela: telaTabela,
+  clientes: telaClientes, 'lista-clientes': telaListaClientes, cliente: telaCliente,
+  equipamentos: telaEquipamentos, equipamento: telaEquipamento,
+  ferramentas: telaFerramentas,
+  medidores: telaInstrumentos, fantomas: telaInstrumentos,
+  instrumento: telaInstrumento
+};
+
+function render(){
+  (TELAS[ESTADO.vista] || telaInicio)();
+}
+
+/* Arranque: honra o endereço, para que recarregar não jogue de volta ao
+   início e para que um link com #relatorios abra onde diz. O primeiro
+   estado entra por replaceState — empilhar aqui daria um voltar que não
+   sai de lugar nenhum. */
+const inicial = (location.hash || '').slice(1);
+if (VISTAS_DIRETAS.includes(inicial)) ESTADO.vista = inicial;
+history.replaceState(instantaneo(), '', '#' + ESTADO.vista);
+
+render();
+</script>
+</body>
+</html>

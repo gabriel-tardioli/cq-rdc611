@@ -1,0 +1,21 @@
+# Dependências (o app não tem nenhuma em tempo de execução; isto é só
+# para o caso de entrar alguma ferramenta de mesa)
+node_modules/
+
+# Netlify
+.netlify/
+
+# Sistema operacional
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Material de referência: laudos reais, normas baixadas, documentos de cliente.
+# Fica fora do repositório e, principalmente, fora de `app/` — que é a pasta
+# que o Netlify publica. Um laudo real ali vira um endereço público.
+referencias/

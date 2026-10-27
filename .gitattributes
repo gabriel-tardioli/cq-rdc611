@@ -1,0 +1,10 @@
+# Normaliza terminadores de linha: o repositório guarda LF, o Windows recebe
+# CRLF na cópia de trabalho. Sem isto, os arquivos que nasceram em CRLF e as
+# edições feitas em LF aparecem como diferença de arquivo inteiro.
+* text=auto eol=lf
+
+# Binários: nunca tocar.
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.pdf binary
